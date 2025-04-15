@@ -2,8 +2,8 @@
 from openpyxl import Workbook, load_workbook
 from datetime import datetime
 import os
-from ..plantilla.cabecera import Cabecera
-from ..plantilla.constants import Constants
+from plantilla.cabecera import Cabecera
+from plantilla.constants import Constants
 
 def crear_archivo_excel_con_cabecera(subFolder):
     fecha_hora_actual = datetime.now().strftime("%Y%m%d_%H%M%S")
