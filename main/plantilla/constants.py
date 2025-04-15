@@ -1,0 +1,19 @@
+﻿from enum import Enum
+
+class Constants(Enum):
+    ENCAB_EMPRESA = ("TURBO CARGA SAS", 1)
+    ENCAB_TIPO_DOCUMENTO_FC = ("FC", 2)
+    ENCAB_TIPO_DOCUMENTO_NCDOC = ("NCDOC", 2)
+    ENCAB_TERCERO_INTERNO = ("1010191952", 6)
+    ENCAB_TERCERO_EXTERNO = ("900470252", 7)
+    ENCAB_FORMA_PAGO = ("Credito", 11)
+    ENCAB_VERIFICADO = ("0", 12)
+    ENCAB_ANULADO = ("0", 13)
+    DETALLE_PRODUCTO = ("61450501", 33)
+    DETALLE_BODEGA = ("Principal", 34)
+    DETALLE_UNIDAD_MEDIDA = ("Und.", 35)
+    DETALLE_CANTIDAD = ("1", 36)
+    DETALLE_IVA = ("0.00", 37)
+    DETALLE_DESCUENTO = ("0", 39)
+
+    PEAJE = ("PEAJE",0)
