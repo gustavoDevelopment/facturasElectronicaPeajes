@@ -60,19 +60,19 @@ def do_on_start_extract_facturacion(subFolder):
     base_dir = os.getcwd()
     base_dir = os.path.dirname(base_dir)
     base_facturas = os.path.join(base_dir, "zip",subFolder)
-    voucherDir = os.path.join(base_dir, "voucher",subFolder)
-    processDir = os.path.join(base_dir, "openZip",subFolder)
-    closedDir = os.path.join(base_dir, "closedZip",subFolder)
+    voucher_dir = os.path.join(base_dir, "voucher",subFolder)
+    process_dir = os.path.join(base_dir, "openZip",subFolder)
+    closed_dir = os.path.join(base_dir, "closedZip",subFolder)
     print("📂 Directorio Base:", base_dir)
     print("📂 Directorio base_facturas:", base_facturas)
-    print("📂 Directorio voucherDir:", voucherDir)
-    print("📂 Directorio processDir:", processDir)
-    print("📂 Directorio closedDir:", closedDir)
+    print("📂 Directorio voucher_dir:", voucher_dir)
+    print("📂 Directorio process_dir:", process_dir)
+    print("📂 Directorio closed_dir:", closed_dir)
     
     # Crear carpetas si no existen
-    os.makedirs(voucherDir, exist_ok=True)
-    os.makedirs(processDir, exist_ok=True)
-    os.makedirs(closedDir, exist_ok=True)
+    os.makedirs(voucher_dir, exist_ok=True)
+    os.makedirs(process_dir, exist_ok=True)
+    os.makedirs(closed_dir, exist_ok=True)
 
     print("🔎 Buscando zip facturas in path...",base_facturas)
     lista_peajes = []
@@ -81,16 +81,16 @@ def do_on_start_extract_facturacion(subFolder):
         if filename.endswith(".zip") and not filename.endswith(".crdownload"):
             if filename.lower().endswith(".zip"):
                 print(f"📦 ZIP detectado: {filename}")
-                pathFileFac,archivos_xml= descomprimir_y_procesar_zip(subFolder,path,filename,processDir,closedDir)
+                pathFileFac,archivos_xml= descomprimir_y_procesar_zip(subFolder,path,filename,process_dir,closed_dir)
                 for fileNameXml in archivos_xml:
                     ruta_completa = os.path.join(pathFileFac, fileNameXml)
                     factura_id, texto_factura = extraer_datos_factura(subFolder,ruta_completa)
-                    do_on_create_voucher(str(factura_id),str(texto_factura),voucherDir)
+                    do_on_create_voucher(str(factura_id),str(texto_factura),voucher_dir)
                     lista_peajes.append(texto_factura)
         else :
             print(f"📦 ZIP detectado in download not process {filename}")
             
     print("🔎 Generando plantilla...")
-    path_plantilla=crear_archivo_excel_con_cabecera(subFolder)
+    path_plantilla=crear_archivo_excel_con_cabecera(base_dir,subFolder)
     agregar_filas_al_excel(path_plantilla,lista_peajes)
     print("\n✅ Proceso completado.")

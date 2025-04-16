@@ -78,9 +78,11 @@ def conectar_y_descargar(mes, año,folderDownload,folderProcess):
     
     mail.logout()
 
-def do_on_start(subFolder):
-    downloadZIPS = os.path.join(os.getcwd(), "zip",str(month)+str("_")+str(year))
-    processZIPS = os.path.join(os.getcwd(), "closedZip",str(month)+str("_")+str(year))   
+def do_on_start(subFolder,month,year):
+    base_dir = os.getcwd()
+    base_dir = os.path.dirname(base_dir)
+    downloadZIPS = os.path.join(base_dir, "zip",subFolder)
+    processZIPS = os.path.join(base_dir, "closedZip",subFolder)   
     print("Folder download email: ",downloadZIPS) 
     os.makedirs(downloadZIPS, exist_ok=True)
     conectar_y_descargar(month,year,downloadZIPS,processZIPS)

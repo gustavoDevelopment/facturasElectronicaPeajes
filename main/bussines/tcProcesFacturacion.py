@@ -73,7 +73,7 @@ def extraer_datos_factura(subFolder,xml_file):
         "FacturaCabecera": letras,
         "FacturaNumero": numeros,
         "FechaEmision": fecha_convertida,
-        "ValorTotal": valor_total,
+        "ValorTotal": limpiar_decimal(valor_total),
         "Moneda": moneda,
         "ProveedorNombre": proveedor_nombre,
         "ProveedorNIT": proveedor_nit,
@@ -86,6 +86,12 @@ def extraer_datos_factura(subFolder,xml_file):
     }
    
     return factura_id, fila
+
+def limpiar_decimal(valor):
+    if float(valor).is_integer():
+        return str(int(float(valor)))
+    else:
+        return str(valor)
 
 def extraer_datos_peaje(descripcion):
     # Expresión regular para extraer el nombre del peaje y el número de placa
