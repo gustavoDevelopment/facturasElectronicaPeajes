@@ -37,6 +37,12 @@ def agregar_filas_al_excel(path_excel: str, datos: list[dict]):
 
     for item in datos:
         ws.cell(row=next_row, column=Constants.ENCAB_EMPRESA.value[1], value=Constants.ENCAB_EMPRESA.value[0])
+
+        if item["FacturaCabecera"] == "PP" or item["FacturaCabecera"] == "PR" :
+            ws.cell(row=next_row, column=Constants.ENCAB_TIPO_DOCUMENTO_FC.value[1], value=Constants.ENCAB_TIPO_DOCUMENTO_FC.value[0])
+        else:
+            ws.cell(row=next_row, column=Constants.ENCAB_TIPO_DOCUMENTO_NCDOC.value[1], value=Constants.ENCAB_TIPO_DOCUMENTO_NCDOC.value[0])
+        
         ws.cell(row=next_row, column=Constants.ENCAB_TERCERO_INTERNO.value[1], value=Constants.ENCAB_TERCERO_INTERNO.value[0])
         ws.cell(row=next_row, column=Constants.ENCAB_TERCERO_EXTERNO.value[1], value=Constants.ENCAB_TERCERO_EXTERNO.value[0])
         ws.cell(row=next_row, column=Constants.ENCAB_FORMA_PAGO.value[1], value=Constants.ENCAB_FORMA_PAGO.value[0])

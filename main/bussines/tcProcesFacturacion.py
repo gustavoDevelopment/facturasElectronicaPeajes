@@ -70,7 +70,7 @@ def extraer_datos_factura(subFolder,xml_file):
     numeros = re.search(r"\d+", factura_id).group()
     fila = {
         "FacturaID": factura_id,
-        "FacturaCabecera": letras,
+        "FacturaCabecera": str(letras),
         "FacturaNumero": numeros,
         "FechaEmision": fecha_convertida,
         "ValorTotal": limpiar_decimal(valor_total),
