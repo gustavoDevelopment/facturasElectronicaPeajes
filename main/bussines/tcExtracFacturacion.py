@@ -57,7 +57,7 @@ def do_on_create_voucher(factura_id, texto_factura,voucherDir):
 
 # ---------- Ejecutar ----------
 def do_on_start_extract_facturacion(subFolder):
-    base_dir = os.getcwd()
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     base_dir = os.path.dirname(os.path.dirname(base_dir))
     base_facturas = os.path.join(base_dir, "zip",subFolder)
     voucher_dir = os.path.join(base_dir, "voucher",subFolder)

@@ -12,3 +12,7 @@ from bussines.tcEmail import ultimo_dia_del_mes
 
 print("Find Facturas desde ",primer_dia_del_mes(3,2025)," hasta ",primer_dia_del_siguiente_mes(3,2025))
 print("Find Facturas desde ",primer_dia_del_mes(3,2025)," hasta ",ultimo_dia_del_mes(3,2025))
+
+current_directory = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+print("ruta relativa de ejecucion: ",current_directory)
