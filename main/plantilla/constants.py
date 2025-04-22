@@ -13,7 +13,14 @@ class Constants(Enum):
     DETALLE_BODEGA = ("Principal", 34)
     DETALLE_UNIDAD_MEDIDA = ("Und.", 35)
     DETALLE_CANTIDAD = ("1", 36)
-    DETALLE_IVA = ("0.00", 37)
+    DETALLE_IVA = ("0", 37)
     DETALLE_DESCUENTO = ("0", 39)
 
     PEAJE = ("PEAJE",0)
+    FACTURA = ("FACTURA",0)
+    NOTA_CREDITO = ("NOTA_CREDITO",0)
+
+    FACTURA_CABECERA_PP = ("PP",0)
+    FACTURA_CABECERA_PF = ("PF",0)
+    FACTURA_CABECERA_NOTA_CREDITO = ("NCPP",0)
+
