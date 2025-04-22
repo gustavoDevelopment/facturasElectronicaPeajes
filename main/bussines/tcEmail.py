@@ -2,7 +2,7 @@
 import email
 from email.header import decode_header
 import os
-from datetime import datetime
+from datetime import datetime,timedelta
 import base64
 import calendar
 
@@ -14,19 +14,23 @@ EMAIL_PASS = "jpssbbcmuodaymgb"  # Usa una contraseña de aplicación
 def limpiar_texto(texto):
     return "".join(c for c in texto if c.isalnum() or c in (" ", ".", "_", "-"))
 
-def primer_dia_del_mes(mes, año):
+def primer_dia_del_mes(mes, annio):
     # Devuelve el primer día del mes especificado
-    return datetime(año, mes, 1).strftime("%d-%b-%Y")
+    return datetime(annio, mes, 1).strftime("%d-%b-%Y")
 
-def ultimo_dia_del_mes(mes, año):
+def primer_dia_del_siguiente_mes(mes, annio):
+    # Devuelve el primer día del mes especificado
+    return (datetime(annio, mes, 1) + timedelta(days=32)).replace(day=1).strftime("%d-%b-%Y")
+
+def ultimo_dia_del_mes(mes, annio):
     # Devuelve el último día del mes especificado
-    ultimo_dia = calendar.monthrange(año, mes)[1]
-    return datetime(año, mes, ultimo_dia).strftime("%d-%b-%Y")
+    ultimo_dia = calendar.monthrange(annio, mes)[1]
+    return datetime(annio, mes, ultimo_dia).strftime("%d-%b-%Y")
 
-def conectar_y_descargar(mes, año,folderDownload,folderProcess):
+def conectar_y_descargar(mes, annio,folderDownload,folderProcess):
 
-    inicio_mes = primer_dia_del_mes(mes, año)
-    fin_mes = ultimo_dia_del_mes(mes, año)
+    inicio_mes = primer_dia_del_mes(mes, annio)
+    fin_mes = primer_dia_del_siguiente_mes(mes, annio)
 
     # Conectar a Gmail
     mail = imaplib.IMAP4_SSL(IMAP_SERVER)
@@ -34,6 +38,7 @@ def conectar_y_descargar(mes, año,folderDownload,folderProcess):
     mail.select("inbox")
 
     # Buscar correos del día con el asunto específico
+    print("Find Facturas desde ",inicio_mes," hasta ",fin_mes)
     estado, mensajes = mail.search(None, f'(SENTSINCE {inicio_mes} BEFORE {fin_mes} SUBJECT "PEAJES ELECTRONICOS S.A.S.")')
     if estado != "OK":
         print("❌ Error al buscar correos.")
@@ -80,7 +85,8 @@ def conectar_y_descargar(mes, año,folderDownload,folderProcess):
 
 def do_on_start(subFolder,month,year):
     base_dir = os.getcwd()
-    base_dir = os.path.dirname(base_dir)
+    base_dir = os.path.dirname(os.path.dirname(base_dir))
+    print("Folder Base: ",base_dir)
     downloadZIPS = os.path.join(base_dir, "zip",subFolder)
     processZIPS = os.path.join(base_dir, "closedZip",subFolder)   
     print("Folder download email: ",downloadZIPS) 

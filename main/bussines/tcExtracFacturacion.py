@@ -58,7 +58,7 @@ def do_on_create_voucher(factura_id, texto_factura,voucherDir):
 # ---------- Ejecutar ----------
 def do_on_start_extract_facturacion(subFolder):
     base_dir = os.getcwd()
-    base_dir = os.path.dirname(base_dir)
+    base_dir = os.path.dirname(os.path.dirname(base_dir))
     base_facturas = os.path.join(base_dir, "zip",subFolder)
     voucher_dir = os.path.join(base_dir, "voucher",subFolder)
     process_dir = os.path.join(base_dir, "openZip",subFolder)
@@ -84,7 +84,7 @@ def do_on_start_extract_facturacion(subFolder):
                 pathFileFac,archivos_xml= descomprimir_y_procesar_zip(subFolder,path,filename,process_dir,closed_dir)
                 for fileNameXml in archivos_xml:
                     ruta_completa = os.path.join(pathFileFac, fileNameXml)
-                    factura_id, texto_factura = extraer_datos_factura(subFolder,ruta_completa)
+                    factura_id, texto_factura = extraer_datos_factura(ruta_completa)
                     do_on_create_voucher(str(factura_id),str(texto_factura),voucher_dir)
                     lista_peajes.append(texto_factura)
         else :

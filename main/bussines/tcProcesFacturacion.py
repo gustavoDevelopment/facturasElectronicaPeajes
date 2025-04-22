@@ -5,7 +5,7 @@ from datetime import datetime
 from plantilla.constants import Constants
 import re
 
-def extraer_datos_factura(subFolder,xml_file):
+def extraer_datos_factura(xml_file):
     print("Source xml read: ",xml_file)
     # 1. Leer el XML principal (AttachedDocument)
     with open(xml_file, "rb") as f:
@@ -32,6 +32,7 @@ def extraer_datos_factura(subFolder,xml_file):
     }
 
     # 4. Extraer datos clave de la factura
+    invoiceTypeXml= Constants.FACTURA.value[0]
     factura_id = factura_root.findtext('cbc:ID', namespaces=invoice_ns)
     fecha_emision = factura_root.findtext('cbc:IssueDate', namespaces=invoice_ns)
     moneda = factura_root.findtext('cbc:DocumentCurrencyCode', namespaces=invoice_ns)
@@ -49,6 +50,11 @@ def extraer_datos_factura(subFolder,xml_file):
     items = factura_root.findall('.//cac:InvoiceLine', namespaces=invoice_ns)
     notaCredito = factura_root.findall('.//cac:CreditNoteLine', namespaces=invoice_ns)
 
+    # Nota Credito Factura Relacionada
+    relatedInvoice= factura_root.findtext('.//cbc:ReferenceID', namespaces=invoice_ns)
+    if relatedInvoice is None:
+        relatedInvoice="00000"
+
     # Crear las líneas de ítems para la salida
     lineas = []
     for item in items:
@@ -58,17 +64,23 @@ def extraer_datos_factura(subFolder,xml_file):
         precio = item.findtext('.//cbc:PriceAmount', namespaces=invoice_ns)
         lineas.append(f" - {descripcion} | Cantidad: {cantidad} | Precio: {precio}")
     
-    for item in notaCredito:
+    for item in notaCredito:    
         descripcion = item.findtext('.//cbc:Description', namespaces=invoice_ns)
         nombre_peaje, numero_placa=extraer_datos_peaje(descripcion)
         cantidad = item.findtext('cbc:InvoicedQuantity', namespaces=invoice_ns)
         precio = item.findtext('.//cbc:PriceAmount', namespaces=invoice_ns)
         lineas.append(f" - {descripcion} | Cantidad: {cantidad} | Precio: {precio}")
-    
+
+    refs = [e.text for e in item.findall('.//cbc:ReferenceID', namespaces=invoice_ns)]  
     fecha_convertida = datetime.strptime(fecha_emision, "%Y-%m-%d").strftime("%d/%m/%Y")
     letras = re.match(r"[A-Za-z]+", factura_id).group()
     numeros = re.search(r"\d+", factura_id).group()
+
+    if letras == Constants.FACTURA_CABECERA_NOTA_CREDITO.value[0]:
+        invoiceTypeXml= Constants.NOTA_CREDITO.value[0]
+
     fila = {
+        "InvoiceType": str(invoiceTypeXml),
         "FacturaID": factura_id,
         "FacturaCabecera": str(letras),
         "FacturaNumero": numeros,
@@ -82,6 +94,7 @@ def extraer_datos_factura(subFolder,xml_file):
         "NombrePeaje": str(Constants.PEAJE.value[0])+str(" ") + str(nombre_peaje),
         "NumeroPlaca": numero_placa,
         "Items": lineas,
+        "FacturaRelacionada" : re.search(r"\d+", relatedInvoice).group(),
         "xml": xml_file
     }
    
@@ -137,3 +150,5 @@ fileXml = os.path.join(os.getcwd(), "testXml","ad090047025200025008b3bb8.xml")
 factura_id, texto_factura = extraer_datos_factura(fileXml)
 print(texto_factura)
 '''
+
+
