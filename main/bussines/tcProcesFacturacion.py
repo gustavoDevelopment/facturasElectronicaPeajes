@@ -57,21 +57,39 @@ def extraer_datos_factura(xml_file):
 
     # Crear las líneas de ítems para la salida
     lineas = []
+    l,l2 = [],[]
+    peaje=""
+    peaje1=""
+    placa=""
+    placa1 = ""
+
+    l,peaje,placa=(procesar_items(items, invoice_ns, incluir_referencia=True))
+    l2,peaje1,placa1=(procesar_items(notaCredito, invoice_ns, incluir_referencia=True))
+    
+    nombre_peaje=peaje
+    numero_placa=placa
+
+    nombre_peaje=peaje1
+    numero_placa=placa1
+    lineas.extend(l)
+    lineas.extend(l2)
+
     for item in items:
         descripcion = item.findtext('.//cbc:Description', namespaces=invoice_ns)
         nombre_peaje, numero_placa=extraer_datos_peaje(descripcion)
+        referenciaItem = item.findtext('.//cac:SellersItemIdentification/cbc:ID', namespaces=invoice_ns)
         cantidad = item.findtext('cbc:InvoicedQuantity', namespaces=invoice_ns)
         precio = item.findtext('.//cbc:PriceAmount', namespaces=invoice_ns)
-        lineas.append(f" - {descripcion} | Cantidad: {cantidad} | Precio: {precio}")
+        lineas.append(f"| Referencia:{referenciaItem} |Item: {descripcion} | Cantidad: {cantidad} | Precio: {precio}")
     
     for item in notaCredito:    
         descripcion = item.findtext('.//cbc:Description', namespaces=invoice_ns)
         nombre_peaje, numero_placa=extraer_datos_peaje(descripcion)
+        referenciaItem = item.findtext('.//cac:SellersItemIdentification/cbc:ID', namespaces=invoice_ns)
         cantidad = item.findtext('cbc:InvoicedQuantity', namespaces=invoice_ns)
         precio = item.findtext('.//cbc:PriceAmount', namespaces=invoice_ns)
-        lineas.append(f" - {descripcion} | Cantidad: {cantidad} | Precio: {precio}")
+        lineas.append(f"| Referencia:{referenciaItem} |Item: {descripcion} | Cantidad: {cantidad} | Precio: {precio}")
 
-    refs = [e.text for e in item.findall('.//cbc:ReferenceID', namespaces=invoice_ns)]  
     fecha_convertida = datetime.strptime(fecha_emision, "%Y-%m-%d").strftime("%d/%m/%Y")
     letras = re.match(r"[A-Za-z]+", factura_id).group()
     numeros = re.search(r"\d+", factura_id).group()
@@ -91,7 +109,7 @@ def extraer_datos_factura(xml_file):
         "ProveedorNIT": proveedor_nit,
         "ClienteNombre": cliente_nombre,
         "ClienteNIT": cliente_nit,
-        "NombrePeaje": str(Constants.PEAJE.value[0])+str(" ") + str(nombre_peaje),
+        "NombrePeaje": nombre_peaje,
         "NumeroPlaca": numero_placa,
         "Items": lineas,
         "FacturaRelacionada" : re.search(r"\d+", relatedInvoice).group(),
@@ -117,6 +135,7 @@ def extraer_datos_peaje(descripcion):
     
     if resultado:
         nombre_peaje =extraer_name_peaje(resultado.group(1).strip())  # Nombre del peaje (antes de la placa)
+        nombre_peaje= str(Constants.PEAJE.value[0])+str(" ") + str(nombre_peaje)
         numero_placa = resultado.group(2).strip()  # Número de placa
         
         return nombre_peaje, numero_placa
@@ -139,16 +158,27 @@ def extraer_name_peaje(descripcion):
     else:
         return None  # Si no se encuentra el nombre del peaje
 
+def obtener_valor(node, path, ns):
+    """Devuelve el texto del nodo encontrado o 'N/A' si no existe"""
+    result = node.find(path, namespaces=ns)
+    return result.text if result is not None else 'N/A'
 
-# Ejemplo de uso
-'''
-fileXml = os.path.join(os.getcwd(), "testXml","ad090047025200025008b3f11.xml")
-factura_id, texto_factura = extraer_datos_factura(fileXml)
-print(texto_factura)
+def procesar_items(items, ns, incluir_referencia=True):
+    lineas = []
+    nombre_peaje =""
+    numero_placa =""
+    for item in items:
+        descripcion = obtener_valor(item, './/cbc:Description', ns)
+        nombre_peaje, numero_placa = extraer_datos_peaje(descripcion)
 
-fileXml = os.path.join(os.getcwd(), "testXml","ad090047025200025008b3bb8.xml")
-factura_id, texto_factura = extraer_datos_factura(fileXml)
-print(texto_factura)
-'''
+        cantidad = obtener_valor(item, 'cbc:InvoicedQuantity', ns)
+        precio = obtener_valor(item, './/cbc:PriceAmount', ns)
 
+        if incluir_referencia:
+            referencia = obtener_valor(item, './/cac:SellersItemIdentification/cbc:ID', ns)
+            linea = f"| Referencia: {referencia} | Item: {descripcion} | Cantidad: {cantidad} | Precio: {precio} |"
+        else:
+            linea = f"- {descripcion} | Cantidad: {cantidad} | Precio: {precio} |"
 
+        lineas.append(linea)
+    return lineas,nombre_peaje,numero_placa
