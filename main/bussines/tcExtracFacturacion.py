@@ -5,6 +5,7 @@ from lxml import etree
 from bussines.tcCausar import agregar_filas_al_excel
 from bussines.tcCausar import crear_archivo_excel_con_cabecera
 from bussines.tcProcesFacturacion import extraer_datos_factura
+from plantilla.constants import Constants
 
 # Namespaces UBL
 ns = {
@@ -56,13 +57,13 @@ def do_on_create_voucher(factura_id, texto_factura,voucherDir):
     print(f"Factura guardada en: {file_path}")
 
 # ---------- Ejecutar ----------
-def do_on_start_extract_facturacion(subFolder):
+def do_on_start_extract_facturacion(subFolder,tenant_id):
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     base_dir = os.path.dirname(os.path.dirname(base_dir))
-    base_facturas = os.path.join(base_dir, "zip",subFolder)
-    voucher_dir = os.path.join(base_dir, "voucher",subFolder)
-    process_dir = os.path.join(base_dir, "openZip",subFolder)
-    closed_dir = os.path.join(base_dir, "closedZip",subFolder)
+    base_facturas = os.path.join(base_dir,Constants.APLICATION_NAME.value[0],tenant_id, "zip",subFolder)
+    voucher_dir = os.path.join(base_dir,Constants.APLICATION_NAME.value[0],tenant_id, "voucher",subFolder)
+    process_dir = os.path.join(base_dir,Constants.APLICATION_NAME.value[0],tenant_id, "openZip",subFolder)
+    closed_dir = os.path.join(base_dir,Constants.APLICATION_NAME.value[0],tenant_id, "closedZip",subFolder)
     print("📂 Directorio Base:", base_dir)
     print("📂 Directorio base_facturas:", base_facturas)
     print("📂 Directorio voucher_dir:", voucher_dir)
@@ -91,6 +92,6 @@ def do_on_start_extract_facturacion(subFolder):
             print(f"📦 ZIP detectado in download not process {filename}")
             
     print("🔎 Generando plantilla...")
-    path_plantilla=crear_archivo_excel_con_cabecera(base_dir,subFolder)
+    path_plantilla=crear_archivo_excel_con_cabecera(base_dir,subFolder,tenant_id)
     agregar_filas_al_excel(path_plantilla,lista_peajes)
     print("\n✅ Proceso completado.")

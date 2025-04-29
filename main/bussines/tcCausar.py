@@ -5,10 +5,10 @@ import os
 from plantilla.cabecera import Cabecera
 from plantilla.constants import Constants
 
-def crear_archivo_excel_con_cabecera(base_dir,subFolder):
+def crear_archivo_excel_con_cabecera(base_dir,subFolder,tenant_id):
     nombre_archivo = f"documento_{subFolder}.xlsx"
     # Establecer la ruta del archivo Excel
-    path_excel = os.path.join(base_dir, "output", nombre_archivo)  # Aquí creas el directorio "file"
+    path_excel = os.path.join(base_dir,Constants.APLICATION_NAME.value[0],tenant_id, "output", nombre_archivo)  # Aquí creas el directorio "file"
     # Verifica que la carpeta "file" exista, si no, créala
     if not os.path.exists(os.path.dirname(path_excel)):
         os.makedirs(os.path.dirname(path_excel))

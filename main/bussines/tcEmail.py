@@ -5,11 +5,7 @@ import os
 from datetime import datetime,timedelta
 import base64
 import calendar
-
-# Configura tus datos
-IMAP_SERVER = "imap.gmail.com"
-EMAIL_USER = "turbocargatransporte@gmail.com"
-EMAIL_PASS = "jpssbbcmuodaymgb"  # Usa una contraseña de aplicación
+from plantilla.constants import Constants
 
 def limpiar_texto(texto):
     return "".join(c for c in texto if c.isalnum() or c in (" ", ".", "_", "-"))
@@ -27,14 +23,14 @@ def ultimo_dia_del_mes(mes, annio):
     ultimo_dia = calendar.monthrange(annio, mes)[1]
     return datetime(annio, mes, ultimo_dia).strftime("%d-%b-%Y")
 
-def conectar_y_descargar(mes, annio,folderDownload,folderProcess):
+def conectar_y_descargar(mes, annio,folderDownload,folderProcess,emailConfig):
 
     inicio_mes = primer_dia_del_mes(mes, annio)
     fin_mes = primer_dia_del_siguiente_mes(mes, annio)
 
     # Conectar a Gmail
-    mail = imaplib.IMAP4_SSL(IMAP_SERVER)
-    mail.login(EMAIL_USER, EMAIL_PASS)
+    mail = imaplib.IMAP4_SSL(emailConfig["imap_server"])
+    mail.login(emailConfig["user"], emailConfig["password"])
     mail.select("inbox")
 
     # Buscar correos del día con el asunto específico
@@ -83,12 +79,13 @@ def conectar_y_descargar(mes, annio,folderDownload,folderProcess):
     
     mail.logout()
 
-def do_on_start(subFolder,month,year):
+def do_on_start(subFolder,month,year,emailConfig,tenant_id):
+    print("Conect Email with config: ",emailConfig)
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     base_dir = os.path.dirname(os.path.dirname(base_dir))
     print("Folder Base: ",base_dir)
-    downloadZIPS = os.path.join(base_dir, "zip",subFolder)
-    processZIPS = os.path.join(base_dir, "closedZip",subFolder)   
+    downloadZIPS = os.path.join(base_dir,Constants.APLICATION_NAME.value[0],tenant_id, "zip",subFolder)
+    processZIPS = os.path.join(base_dir,Constants.APLICATION_NAME.value[0],tenant_id, "closedZip",subFolder)   
     print("Folder download email: ",downloadZIPS) 
     os.makedirs(downloadZIPS, exist_ok=True)
-    conectar_y_descargar(month,year,downloadZIPS,processZIPS)
+    conectar_y_descargar(month,year,downloadZIPS,processZIPS,emailConfig)

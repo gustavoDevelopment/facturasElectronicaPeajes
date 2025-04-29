@@ -1,6 +1,7 @@
 ﻿from enum import Enum
 
 class Constants(Enum):
+    APLICATION_NAME=("Facturae_Optimus",0)
     ENCAB_EMPRESA = ("TURBO CARGA SAS", 1)
     ENCAB_TIPO_DOCUMENTO_FC = ("FC", 2)
     ENCAB_TIPO_DOCUMENTO_NCDOC = ("NCDOC", 2)
