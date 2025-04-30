@@ -1,0 +1,294 @@
+{
+  "columns": [
+    {
+      "column": "Encab: Empresa",
+      "index": 1,
+      "constants": {
+        "name": "ENCAB_EMPRESA",
+        "value": "TURBO CARGA SAS"
+      }
+    },
+    {
+      "column": "Encab: Tipo Documento",
+      "index": 2,
+      "constants": [
+        {
+          "name": "ENCAB_TIPO_DOCUMENTO_FC",
+          "value": "FC"
+        },
+        {
+          "name": "ENCAB_TIPO_DOCUMENTO_NCDOC",
+          "value": "NCDOC"
+        }
+      ]
+    },
+    {
+      "column": "Encab: Prefijo",
+      "index": 3
+    },
+    {
+      "column": "Encab: Documento Número",
+      "index": 4
+    },
+    {
+      "column": "Encab: Fecha",
+      "index": 5
+    },
+    {
+      "column": "Encab: Tercero Interno",
+      "index": 6,
+      "constants": {
+        "name": "ENCAB_TERCERO_INTERNO",
+        "value": "1010191952"
+      }
+    },
+    {
+      "column": "Encab: Tercero Externo",
+      "index": 7,
+      "constants": {
+        "name": "ENCAB_TERCERO_EXTERNO",
+        "value": "900470252"
+      }
+    },
+    {
+      "column": "Encab: Pref Dto Ext",
+      "index": 8
+    },
+    {
+      "column": "Encab: No. Dto Ext",
+      "index": 9
+    },
+    {
+      "column": "Encab: Nota",
+      "index": 10
+    },
+    {
+      "column": "Encab: FormaPago",
+      "index": 11,
+      "constants": {
+        "name": "ENCAB_FORMA_PAGO",
+        "value": "Credito"
+      }
+    },
+    {
+      "column": "Encab: Verificado",
+      "index": 12,
+      "constants": {
+        "name": "ENCAB_VERIFICADO",
+        "value": "0"
+      }
+    },
+    {
+      "column": "Encab: Anulado",
+      "index": 13,
+      "constants": {
+        "name": "ENCAB_ANULADO",
+        "value": "0"
+      }
+    },
+    {
+      "column": "Encab: Fecha Emision",
+      "index": 14
+    },
+    {
+      "column": "Encab: Personalizado 1",
+      "index": 15
+    },
+    {
+      "column": "Encab: Personalizado 2",
+      "index": 16
+    },
+    {
+      "column": "Encab: Personalizado 3",
+      "index": 17
+    },
+    {
+      "column": "Encab: Personalizado 4",
+      "index": 18
+    },
+    {
+      "column": "Encab: Personalizado 5",
+      "index": 19
+    },
+    {
+      "column": "Encab: Personalizado 6",
+      "index": 20
+    },
+    {
+      "column": "Encab: Personalizado 7",
+      "index": 21
+    },
+    {
+      "column": "Encab: Personalizado 8",
+      "index": 22
+    },
+    {
+      "column": "Encab: Personalizado 9",
+      "index": 23
+    },
+    {
+      "column": "Encab: Personalizado 10",
+      "index": 24
+    },
+    {
+      "column": "Encab: Personalizado 11",
+      "index": 25
+    },
+    {
+      "column": "Encab: Personalizado 12",
+      "index": 26
+    },
+    {
+      "column": "Encab: Personalizado 13",
+      "index": 27
+    },
+    {
+      "column": "Encab: Personalizado 14",
+      "index": 28
+    },
+    {
+      "column": "Encab: Personalizado 15",
+      "index": 29
+    },
+    {
+      "column": "Encab: Importacion",
+      "index": 30
+    },
+    {
+      "column": "Encab: Sucursal",
+      "index": 31
+    },
+    {
+      "column": "Encab: Clasificación",
+      "index": 32
+    },
+    {
+      "column": "Detalle: Producto",
+      "index": 33,
+      "constants": {
+        "name": "DETALLE_PRODUCTO",
+        "value": "61450501"
+      }
+    },
+    {
+      "column": "Detalle: Bodega",
+      "index": 34,
+      "constants": {
+        "name": "DETALLE_BODEGA",
+        "value": "Principal"
+      }
+    },
+    {
+      "column": "Detalle: UnidadDeMedida",
+      "index": 35,
+      "constants": {
+        "name": "DETALLE_UNIDAD_MEDIDA",
+        "value": "Und."
+      }
+    },
+    {
+      "column": "Detalle: Cantidad",
+      "index": 36,
+      "constants": {
+        "name": "DETALLE_CANTIDAD",
+        "value": "1"
+      }
+    },
+    {
+      "column": "Detalle: IVA",
+      "index": 37,
+      "constants": {
+        "name": "DETALLE_IVA",
+        "value": "0"
+      }
+    },
+    {
+      "column": "Detalle: Valor Unitario",
+      "index": 38
+    },
+    {
+      "column": "Detalle: Descuento",
+      "index": 39,
+      "constants": {
+        "name": "DETALLE_DESCUENTO",
+        "value": "0"
+      }
+    },
+    {
+      "column": "Detalle: Vencimiento",
+      "index": 40
+    },
+    {
+      "column": "Detalle: Nota",
+      "index": 41
+    },
+    {
+      "column": "Detalle: Centro costos",
+      "index": 42
+    },
+    {
+      "column": "Detalle: Personalizado1",
+      "index": 43
+    },
+    {
+      "column": "Detalle: Personalizado2",
+      "index": 44
+    },
+    {
+      "column": "Detalle: Personalizado3",
+      "index": 45
+    },
+    {
+      "column": "Detalle: Personalizado4",
+      "index": 46
+    },
+    {
+      "column": "Detalle: Personalizado5",
+      "index": 47
+    },
+    {
+      "column": "Detalle: Personalizado6",
+      "index": 48
+    },
+    {
+      "column": "Detalle: Personalizado7",
+      "index": 49
+    },
+    {
+      "column": "Detalle: Personalizado8",
+      "index": 50
+    },
+    {
+      "column": "Detalle: Personalizado9",
+      "index": 51
+    },
+    {
+      "column": "Detalle: Personalizado10",
+      "index": 52
+    },
+    {
+      "column": "Detalle: Personalizado11",
+      "index": 53
+    },
+    {
+      "column": "Detalle: Personalizado12",
+      "index": 54
+    },
+    {
+      "column": "Detalle: Personalizado13",
+      "index": 55
+    },
+    {
+      "column": "Detalle: Personalizado14",
+      "index": 56
+    },
+    {
+      "column": "Detalle: Personalizado15",
+      "index": 57
+    },
+    {
+      "column": "Detalle : Código Centro Costos",
+      "index": 58
+    }
+  ]
+}

@@ -45,7 +45,7 @@ print(texto_factura)
 #email=configuracionEmail.obtener_config_email()
 #print("Email: ",email)
 
-tenant_id = "af657458-4160-48c0-bc95-a53d9da18df0"
+tenant_id = "test"
 plantilla_file = os.path.join(os.path.dirname(os.path.abspath(__file__)),
         "build",
         "tenant",

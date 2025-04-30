@@ -1,0 +1,28 @@
+{
+  "columns": [
+    {
+      "column": "Encab: Empresa",
+      "index": 1,
+      "constants": {
+        "name": "ENCAB_EMPRESA",
+        "value": "TURBO CARGA SAS"
+      }
+    },
+    {
+      "column": "Detalle: Personalizado4",
+      "index": 2
+    },
+    {
+      "column": "Detalle: Personalizado5",
+      "index": 3
+    },
+    {
+      "column": "Detalle: Personalizado6",
+      "index": 4
+    },
+    {
+      "column": "Detalle: Personalizado7",
+      "index": 5
+    }
+  ]
+}

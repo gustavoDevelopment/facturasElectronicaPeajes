@@ -1,22 +1,7 @@
 {
-    "tenant001": {
-        "name": "Cliente Alfa S.A.",
+    "turboCarga": {
+        "name": "Turbo Carga SAS",
         "storage": "drive",
-        "email_template": "Estimado cliente, gracias por su compra. Adjunto su factura electr\u00f3nica."
-    },
-    "tenant002": {
-        "name": "Distribuciones Beta",
-        "storage": "/mnt/storage/clientes/beta/facturas",
-        "email_template": "Hola! Aqu\u00ed tiene su comprobante de pago. \u00a1Gracias por confiar en nosotros!"
-    },
-    "tenant003": {
-        "name": "Servicios Gamma",
-        "storage": "aws",
-        "email_template": "Factura electr\u00f3nica enviada desde nuestro sistema automatizado. Saludos."
-    },
-    "af657458-4160-48c0-bc95-a53d9da18df0": {
-        "name": "asd",
-        "storage": "drive",
-        "email_template": "asda"
+        "email_template": "tubocargatransporte@gmail.com"
     }
 }

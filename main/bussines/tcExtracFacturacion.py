@@ -6,6 +6,7 @@ from bussines.tcCausar import agregar_filas_al_excel
 from bussines.tcCausar import crear_archivo_excel_con_cabecera
 from bussines.tcProcesFacturacion import extraer_datos_factura
 from plantilla.constants import Constants
+from objects.fo_obj_plantilla import do_on_get_columns
 
 # Namespaces UBL
 ns = {
@@ -92,6 +93,15 @@ def do_on_start_extract_facturacion(subFolder,tenant_id):
             print(f"📦 ZIP detectado in download not process {filename}")
             
     print("🔎 Generando plantilla...")
-    path_plantilla=crear_archivo_excel_con_cabecera(base_dir,subFolder,tenant_id)
+    plantilla_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "build",
+        "tenant",
+        tenant_id,
+        "plantilla.json"
+    )
+    print("🔎 Load cabceras file: ",plantilla_file)
+    cabeceras=do_on_get_columns(plantilla_file)
+    path_plantilla=crear_archivo_excel_con_cabecera(base_dir,subFolder,tenant_id,cabeceras)
+    print("🔎 Escribiendo en plantilla file: ",path_plantilla)
     agregar_filas_al_excel(path_plantilla,lista_peajes)
     print("\n✅ Proceso completado.")
