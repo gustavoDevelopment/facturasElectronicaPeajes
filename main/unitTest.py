@@ -8,6 +8,10 @@ from bussines.tcEmail import ultimo_dia_del_mes
 from objects.fo_obj_email import ConfiguracionEmail
 from objects.fo_obj_plantilla import do_on_get_columns
 from bussines.tcCausar import crear_archivo_excel_con_cabecera
+import imaplib
+import email
+from email.header import decode_header
+from datetime import datetime,timedelta
 
 
 #fileXml = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test","peajes","ad090047025200025008b3f11.xml")
@@ -45,7 +49,7 @@ print(texto_factura)
 #email=configuracionEmail.obtener_config_email()
 #print("Email: ",email)
 
-tenant_id = "test"
+'''tenant_id = "test"
 plantilla_file = os.path.join(os.path.dirname(os.path.abspath(__file__)),
         "build",
         "tenant",
@@ -54,6 +58,21 @@ plantilla_file = os.path.join(os.path.dirname(os.path.abspath(__file__)),
     )
 cabeceras=do_on_get_columns(plantilla_file)
 print(os.path.dirname( os.path.abspath(__file__)))
-crear_archivo_excel_con_cabecera(os.path.dirname( os.path.abspath(__file__)),"unitTest",tenant_id,cabeceras)
+crear_archivo_excel_con_cabecera(os.path.dirname( os.path.abspath(__file__)),"unitTest",tenant_id,cabeceras)'''
 
 
+# Conectar a Gmail
+fecha1=datetime(2025, 2, 1).strftime("%d-%b-%Y")
+fecha2=datetime(2025, 3, 1).strftime("%d-%b-%Y")
+mail = imaplib.IMAP4_SSL("imap.gmail.com")
+mail.login("turbocargatransporte@gmail.com", "bihfcekwjyikiaco")
+mail.select("inbox")
+
+# Buscar correos del día con el asunto específico
+print("Find Facturas desde ",fecha1," hasta ",fecha2)
+estado, mensajes = mail.search(None, f'(SENTSINCE {fecha1} BEFORE {fecha2} FROM "notificaciones@int.lafactura.co")')
+if estado != "OK":
+    print("❌ Error al buscar correos.")
+  
+ids = mensajes[0].split()
+print(f"🔍 Correos encontrados {fecha1} hasta {fecha2}: {len(ids)}")

@@ -35,7 +35,7 @@ def conectar_y_descargar(mes, annio,folderDownload,folderProcess,emailConfig):
 
     # Buscar correos del día con el asunto específico
     print("Find Facturas desde ",inicio_mes," hasta ",fin_mes)
-    estado, mensajes = mail.search(None, f'(SENTSINCE {inicio_mes} BEFORE {fin_mes} SUBJECT "PEAJES ELECTRONICOS S.A.S.")')
+    estado, mensajes = mail.search(None, f'(SENTSINCE {inicio_mes} BEFORE {fin_mes} FROM "notificaciones@int.lafactura.co")')
     if estado != "OK":
         print("❌ Error al buscar correos.")
         return
