@@ -1,51 +1,141 @@
-import json
+"""
+Módulo que maneja la interfaz de línea de comandos para Facturae Optimus.
+
+Proporciona un menú interactivo para gestionar tenants y ejecutar operaciones.
+"""
 import os
-import uuid
-from printer.fo_tenants import load_tenants
-from printer.fo_tenants import list_tenants
-from printer.fo_tenants import add_tenant
-from printer.fo_tenants import edit_tenant
-from printer.fo_tenants import delete_tenant
-from printer.fo_tenants import TENANTS_FILE
+import sys
+from pathlib import Path
+from typing import Dict, Any, List, Optional, NoReturn
+
+# Importaciones locales
+from config import TENANTS_DIR, DEBUG, get_config
+from logger import get_logger
+from printer.fo_tenants import (
+    load_tenants, list_tenants, add_tenant, 
+    edit_tenant, delete_tenant, TENANTS_FILE
+)
 from disparadores.fo_disparadores import do_on_facture_optimus
 
+# Configuración del logger
+logger = get_logger(__name__)
 
-# Menú principal
-def main_menu():
-    tenant_path=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),"build","tenant",TENANTS_FILE)
-    tenants = load_tenants(tenant_path)
+class Menu:
+    """Clase que maneja el menú principal de la aplicación."""
     
-    while True:
-        mostrar_menu()        
-        choice = input("Seleccione una opción: ").strip()
+    def __init__(self):
+        """Inicializa el menú con la configuración necesaria."""
+        self.tenant_path = TENANTS_DIR / TENANTS_FILE
+        self.tenants = {}
+        self.running = True
         
-        if choice == "1":
-            list_tenants(tenants)
-        elif choice == "2":
-            add_tenant(tenants,tenant_path)
-        elif choice == "3":
-            edit_tenant(tenants,tenant_path)
-        elif choice == "4":
-            delete_tenant(tenants,tenant_path)
-        elif choice == "5":
-            do_on_facture_optimus(tenants,tenant_path)
-        elif choice == "0":
-            print("Saliendo...")
-            break
-        else:
-            print("Opción inválida. Intente de nuevo.")
+        # Asegurar que el directorio de tenants existe
+        self.tenant_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    def cargar_tenants(self) -> bool:
+        """
+        Carga la configuración de tenants desde el archivo.
+        
+        Returns:
+            bool: True si se cargaron los tenants correctamente, False en caso contrario.
+        """
+        try:
+            logger.debug(f"Cargando configuración de tenants desde: {self.tenant_path}")
+            self.tenants = load_tenants(str(self.tenant_path))
+            return True
+        except Exception as e:
+            logger.error(f"Error al cargar la configuración de tenants: {str(e)}")
+            if DEBUG:
+                logger.exception("Detalles del error:")
+            return False
+    
+    def mostrar_menu(self) -> None:
+        """Muestra el menú principal de la aplicación."""
+        menu = """
+        {line}
+                 📄 Facturae Optimus 📄
+        {line}
+         [1] Listar tenants
+         [2] Agregar tenant
+         [3] Editar tenant
+         [4] Eliminar tenant
+         [5] Ejecutar Facturae Optimus
+         [0] Salir
+        {line}
+        """.format(line="="*50)
+        print(menu)
+    
+    def procesar_opcion(self, opcion: str) -> None:
+        """
+        Procesa la opción seleccionada por el usuario.
+        
+        Args:
+            opcion: Opción seleccionada por el usuario.
+        """
+        try:
+            if opcion == "1":
+                list_tenants(self.tenants)
+            elif opcion == "2":
+                add_tenant(self.tenants, str(self.tenant_path))
+            elif opcion == "3":
+                edit_tenant(self.tenants, str(self.tenant_path))
+            elif opcion == "4":
+                delete_tenant(self.tenants, str(self.tenant_path))
+            elif opcion == "5":
+                do_on_facture_optimus(self.tenants, str(self.tenant_path))
+            elif opcion == "0":
+                self.salir()
+            else:
+                print("\n❌ Opción inválida. Por favor, intente de nuevo.")
+        except Exception as e:
+            logger.error(f"Error al procesar la opción {opcion}: {str(e)}")
+            if DEBUG:
+                logger.exception("Detalles del error:")
+    
+    def salir(self) -> None:
+        """Finaliza la ejecución del menú."""
+        logger.info("Saliendo de la aplicación...")
+        self.running = False
+    
+    def ejecutar(self) -> None:
+        """Ejecuta el bucle principal del menú."""
+        if not self.cargar_tenants():
+            logger.error("No se pudo cargar la configuración de tenants. Saliendo...")
+            return
+        
+        logger.info("Menú principal iniciado")
+        
+        while self.running:
+            try:
+                self.mostrar_menu()
+                opcion = input("\nSeleccione una opción: ").strip()
+                self.procesar_opcion(opcion)
+                
+            except KeyboardInterrupt:
+                print("\n\nOperación cancelada por el usuario.")
+                confirmacion = input("¿Desea salir? (s/n): ").strip().lower()
+                if confirmacion == 's':
+                    self.salir()
+            except Exception as e:
+                logger.error(f"Error inesperado: {str(e)}")
+                if DEBUG:
+                    logger.exception("Detalles del error:")
+                
+                # Si hay un error crítico, preguntar si se desea continuar
+                if input("¿Desea continuar? (s/n): ").strip().lower() != 's':
+                    self.salir()
 
-def mostrar_menu():
-    print("\n" + "="*45)
-    print("         📄 Facturae Optimus 📄")
-    print("="*45)
-    print(" [1] Listar tenants")
-    print(" [2] Agregar tenant")
-    print(" [3] Editar tenant")
-    print(" [4] Eliminar tenant")
-    print(" [5] Ejecutar Facturae Optimus")
-    print(" [0] Salir")
-    print("="*45)
-
-
-
+def main_menu() -> None:
+    """
+    Función principal que maneja el flujo del menú.
+    
+    Carga la configuración de tenants y muestra un menú interactivo
+    para gestionarlos y ejecutar operaciones.
+    """
+    try:
+        menu = Menu()
+        menu.ejecutar()
+    except Exception as e:
+        logger.critical(f"Error crítico en el menú principal: {str(e)}", exc_info=True)
+        print("\n❌ Ocurrió un error crítico. Por favor, revise los logs para más detalles.")
+        sys.exit(1)
