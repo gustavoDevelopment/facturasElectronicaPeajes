@@ -1,0 +1,71 @@
+    @startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_LEFT_RIGHT()
+
+Person(persona, "Usuario", "Personal que interactúa con el sistema de facturas")
+System_Ext(peajes, "Sistema de Peajes", "Sistema externo que genera las facturas")
+System_Ext(impresora, "Impresora", "Dispositivo de impresión")
+
+System(facturae_optimus, "Facturae Optimus", "Sistema de gestión de facturas electrónicas")
+
+Rel(persona, facturae_optimus, "Interactúa con", "")
+Rel(peajes, facturae_optimus, "Envía facturas", "")
+Rel(facturae_optimus, impresora, "Imprime facturas", "")
+
+@enduml
+
+
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(persona, "Usuario", "Personal que interactúa con el sistema de facturas")
+System_Ext(peajes, "Sistema de Peajes", "Sistema externo que genera las facturas")
+System_Ext(impresora, "Impresora", "Dispositivo de impresión")
+
+System(facturae_optimus, "Facturae Optimus", "Sistema de gestión de facturas electrónicas")
+
+Container(bussines, "Lógica de Negocio", "Módulo que maneja la lógica principal del sistema", "Python")
+Container(process, "Procesamiento", "Procesa y valida las facturas", "Python")
+Container(printer, "Impresión", "Gestiona la impresión de documentos", "Python")
+
+Rel(persona, bussines, "Interactúa con", "")
+Rel(peajes, process, "Envía facturas", "")
+Rel(process, printer, "Envía a imprimir", "")
+Rel(bussines, process, "Utiliza", "")
+
+@enduml
+
+
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+System(facturae_optimus, "Facturae Optimus", "Sistema de gestión de facturas electrónicas")
+
+Component(bussines, "Bussines", "Lógica de negocio", "Python")
+Component(process, "Process", "Procesamiento de facturas", "Python")
+Component(printer, "Printer", "Impresión", "Python")
+
+Rel(bussines, process, "Utiliza", "")
+Rel(process, printer, "Envía a imprimir", "")
+
+@enduml
+
+
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Dynamic.puml
+
+System(facturae_optimus, "Facturae Optimus", "Sistema de gestión de facturas electrónicas")
+
+Dynamic(process, "Procesamiento", "Recibe y procesa facturas")
+
+== Recibir Factura ==
+process -> process : recibe_factura()
+process -> process : validar_factura()
+process -> process : procesar_factura()
+
+== Imprimir Factura ==
+process -> printer : imprimir_factura()
+
+@enduml

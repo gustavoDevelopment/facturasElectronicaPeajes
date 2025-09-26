@@ -1,0 +1,90 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_LEFT_RIGHT()
+
+Person(usuario, "Usuario", "Personal que interactúa con el sistema")
+System_Ext(peajes, "Sistema de Peajes", "Sistema externo que genera las facturas")
+System_Ext(impresora, "Impresora", "Dispositivo de impresión")
+System_Ext(plantilla_excel, "Plantilla Excel", "Plantilla para exportar datos")
+
+System(facturae_optimus, "Facturae Optimus", "Sistema de gestión de facturas electrónicas")
+
+Rel(usuario, facturae_optimus, "Interactúa con", "")
+Rel(peajes, facturae_optimus, "Envía facturas XML", "")
+Rel(facturae_optimus, impresora, "Imprime facturas", "")
+Rel(facturae_optimus, plantilla_excel, "Exporta datos a", "")
+
+@enduml
+
+
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(usuario, "Usuario", "Personal que interactúa con el sistema")
+System_Ext(peajes, "Sistema de Peajes", "Sistema externo que genera las facturas")
+System_Ext(impresora, "Impresora", "Dispositivo de impresión")
+System_Ext(plantilla_excel, "Plantilla Excel", "Plantilla para exportar datos")
+
+System(facturae_optimus, "Facturae Optimus", "Sistema de gestión de facturas electrónicas")
+
+Container(bussines, "Bussines", "Lógica de negocio", "Python")
+Container(process, "Procesamiento", "Procesa y valida facturas XML", "Python")
+Container(printer, "Impresión", "Gestiona la impresión de documentos", "Python")
+Container(plantilla, "Plantilla", "Genera plantillas Excel", "Python")
+
+Rel(usuario, bussines, "Interactúa con", "")
+Rel(peajes, process, "Envía facturas XML", "")
+Rel(process, printer, "Envía a imprimir", "")
+Rel(process, plantilla, "Envía datos para plantilla", "")
+Rel(bussines, process, "Utiliza", "")
+
+@enduml
+
+
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+System(facturae_optimus, "Facturae Optimus", "Sistema de gestión de facturas electrónicas")
+
+Component(bussines, "Bussines", "Lógica de negocio", "Python")
+Component(process, "Process", "Procesamiento de facturas", "Python")
+Component(printer, "Printer", "Impresión", "Python")
+Component(plantilla, "Plantilla", "Generación de plantillas", "Python")
+
+Component(invoice_processor, "InvoiceProcessor", "Procesador de facturas XML", "Python")
+Component(menu, "Menu", "Interfaz de usuario", "Python")
+
+Rel(bussines, process, "Utiliza", "")
+Rel(process, invoice_processor, "Utiliza", "")
+Rel(process, printer, "Envía a imprimir", "")
+Rel(process, plantilla, "Genera plantillas", "")
+
+@enduml
+
+
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Dynamic.puml
+
+System(facturae_optimus, "Facturae Optimus", "Sistema de gestión de facturas electrónicas")
+
+Dynamic(process, "Procesamiento", "Recibe y procesa facturas")
+
+== Recibir Factura ==
+process -> process : recibe_factura()
+process -> process : validar_factura()
+process -> invoice_processor : procesar_factura()
+
+== Extraer Datos ==
+process -> invoice_processor : extraer_parties_data()
+process -> invoice_processor : extraer_invoice_parts()
+process -> invoice_processor : process_invoice_items()
+
+== Generar Plantilla ==
+process -> plantilla : generar_plantilla()
+process -> plantilla : exportar_datos()
+
+== Imprimir Factura ==
+process -> printer : imprimir_factura()
+
+@enduml

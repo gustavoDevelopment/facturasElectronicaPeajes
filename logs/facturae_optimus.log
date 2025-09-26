@@ -548,3 +548,29 @@ EOFError: EOF when reading a line
 2025-08-04 18:37:08,291 - main.printer.fo_menu - INFO - Saliendo de la aplicación...
 2025-08-04 18:37:08,291 - __main__ - INFO - Aplicación finalizada
 2025-08-04 18:37:08,291 - __main__ - INFO - ==================================================
+2025-08-04 19:02:54,333 - main.fo_start - INFO - ==================================================
+2025-08-04 19:02:54,340 - main.fo_start - INFO - Iniciando Facturae Optimus v1.0.0
+2025-08-04 19:02:54,340 - main.fo_start - INFO - --------------------------------------------------
+2025-08-04 19:02:54,341 - main.printer.fo_menu - INFO - Menú principal iniciado
+2025-08-04 19:03:16,270 - main.printer.fo_menu - INFO - Saliendo de la aplicación...
+2025-08-04 19:03:16,271 - main.fo_start - INFO - Aplicación finalizada
+2025-08-04 19:03:16,271 - main.fo_start - INFO - ==================================================
+2025-08-04 19:05:00,830 - main.fo_start - INFO - ==================================================
+2025-08-04 19:05:00,845 - main.fo_start - INFO - Iniciando Facturae Optimus v1.0.0
+2025-08-04 19:05:00,845 - main.fo_start - INFO - --------------------------------------------------
+2025-08-04 19:05:00,846 - main.printer.fo_menu - INFO - Menú principal iniciado
+2025-09-11 18:02:00,927 - __main__ - INFO - ==================================================
+2025-09-11 18:02:00,963 - __main__ - INFO - Iniciando Facturae Optimus v1.0.0
+2025-09-11 18:02:00,964 - __main__ - INFO - --------------------------------------------------
+2025-09-11 18:02:00,964 - main.printer.fo_menu - INFO - Menú principal iniciado
+2025-09-11 18:02:16,013 - main.printer.fo_menu - INFO - Saliendo de la aplicación...
+2025-09-11 18:02:16,013 - __main__ - INFO - Aplicación finalizada
+2025-09-11 18:02:16,013 - __main__ - INFO - ==================================================
+2025-09-11 18:02:17,827 - __main__ - INFO - ==================================================
+2025-09-11 18:02:17,827 - __main__ - INFO - Iniciando Facturae Optimus v1.0.0
+2025-09-11 18:02:17,827 - __main__ - INFO - --------------------------------------------------
+2025-09-11 18:02:17,827 - main.printer.fo_menu - INFO - Menú principal iniciado
+2025-09-11 18:02:48,290 - main.printer.fo_menu - ERROR - Error al procesar la opción 5: b'[AUTHENTICATIONFAILED] Invalid credentials (Failure)'
+2025-09-11 18:18:52,689 - main.printer.fo_menu - INFO - Saliendo de la aplicación...
+2025-09-11 18:18:52,715 - __main__ - INFO - Aplicación finalizada
+2025-09-11 18:18:52,715 - __main__ - INFO - ==================================================
