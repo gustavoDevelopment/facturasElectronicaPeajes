@@ -574,3 +574,32 @@ EOFError: EOF when reading a line
 2025-09-11 18:18:52,689 - main.printer.fo_menu - INFO - Saliendo de la aplicación...
 2025-09-11 18:18:52,715 - __main__ - INFO - Aplicación finalizada
 2025-09-11 18:18:52,715 - __main__ - INFO - ==================================================
+2025-09-26 14:36:13,860 - main.fo_start - INFO - ==================================================
+2025-09-26 14:36:13,860 - main.fo_start - INFO - Iniciando Facturae Optimus v1.0.0
+2025-09-26 14:36:13,860 - main.fo_start - INFO - --------------------------------------------------
+2025-09-26 14:36:13,860 - main.printer.fo_menu - INFO - Menú principal iniciado
+2025-09-26 14:36:39,093 - main.printer.fo_menu - ERROR - Error al procesar la opción 5: b'[AUTHENTICATIONFAILED] Invalid credentials (Failure)'
+2025-09-26 14:37:33,509 - main.printer.fo_menu - INFO - Saliendo de la aplicación...
+2025-09-26 14:37:33,509 - main.fo_start - INFO - Aplicación finalizada
+2025-09-26 14:37:33,512 - main.fo_start - INFO - ==================================================
+2025-10-17 22:55:50,363 - main.fo_start - INFO - ==================================================
+2025-10-17 22:55:50,363 - main.fo_start - INFO - Iniciando Facturae Optimus v1.0.0
+2025-10-17 22:55:50,363 - main.fo_start - INFO - --------------------------------------------------
+2025-10-17 22:55:50,364 - main.printer.fo_menu - INFO - Menú principal iniciado
+2025-10-17 22:56:30,821 - main.fo_start - INFO - ==================================================
+2025-10-17 22:56:30,821 - main.fo_start - INFO - Iniciando Facturae Optimus v1.0.0
+2025-10-17 22:56:30,821 - main.fo_start - INFO - --------------------------------------------------
+2025-10-17 22:56:30,822 - main.printer.fo_menu - INFO - Menú principal iniciado
+2025-10-17 22:57:00,711 - main.printer.fo_menu - ERROR - Error al procesar la opción 5: b'[AUTHENTICATIONFAILED] Invalid credentials (Failure)'
+2025-10-17 22:57:43,332 - main.fo_start - INFO - 
+Aplicación detenida por el usuario.
+2025-10-17 22:57:43,332 - main.fo_start - INFO - Aplicación finalizada
+2025-10-17 22:57:43,333 - main.fo_start - INFO - ==================================================
+2025-10-17 23:06:18,178 - main.fo_start - INFO - ==================================================
+2025-10-17 23:06:18,179 - main.fo_start - INFO - Iniciando Facturae Optimus v1.0.0
+2025-10-17 23:06:18,179 - main.fo_start - INFO - --------------------------------------------------
+2025-10-17 23:06:18,179 - main.printer.fo_menu - INFO - Menú principal iniciado
+2025-10-21 22:34:29,349 - main.fo_start - INFO - ==================================================
+2025-10-21 22:34:29,349 - main.fo_start - INFO - Iniciando Facturae Optimus v1.0.0
+2025-10-21 22:34:29,350 - main.fo_start - INFO - --------------------------------------------------
+2025-10-21 22:34:29,357 - main.printer.fo_menu - INFO - Menú principal iniciado

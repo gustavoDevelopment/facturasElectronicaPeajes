@@ -7,3 +7,5 @@
 __pycache__/
 *.py[cod]
 
+logs/facturae_optimus.log
+main/build/tenant/turboCarga/email.json
