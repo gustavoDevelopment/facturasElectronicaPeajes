@@ -8,7 +8,7 @@ from plantilla.constants import Constants
 def crear_archivo_excel_con_cabecera(base_dir,subFolder,tenant_id,cabeceras):
     nombre_archivo = f"documento_{subFolder}.xlsx"
     # Establecer la ruta del archivo Excel
-    path_excel = os.path.join(base_dir,Constants.APLICATION_NAME.value[0],tenant_id, "output", nombre_archivo)  # Aquí creas el directorio "file"
+    path_excel = os.path.join(base_dir, "output", nombre_archivo)  # Aquí creas el directorio "file"
     # Verifica que la carpeta "file" exista, si no, créala
     if not os.path.exists(os.path.dirname(path_excel)):
         os.makedirs(os.path.dirname(path_excel))
@@ -17,13 +17,12 @@ def crear_archivo_excel_con_cabecera(base_dir,subFolder,tenant_id,cabeceras):
     ws = wb.active
     ws.title = str(Constants.FACTURA.value[0])
 
-    for columna in cabeceras:
-        print(str(columna.index),str(columna.column))
-        ws.cell(row=1, column=columna.index, value=str(columna.column))
+    for columna in Cabecera:
+        ws.cell(row=1, column=columna.value[1], value=columna.value[0])
 
     ws2 = wb.create_sheet(title=str(Constants.NOTA_CREDITO.value[0]))
-    for columna in cabeceras:
-        ws2.cell(row=1, column=columna.index, value=columna.column)
+    for columna in Cabecera:
+        ws2.cell(row=1, column=columna.value[1], value=columna.value[0])
 
     wb.save(path_excel)
     print(f"✅ Archivo creado: {path_excel}")

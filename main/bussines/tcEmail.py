@@ -23,52 +23,10 @@ def ultimo_dia_del_mes(mes, annio):
     ultimo_dia = calendar.monthrange(annio, mes)[1]
     return datetime(annio, mes, ultimo_dia).strftime("%d-%b-%Y")
 
-def conectar_y_descargar(mes, annio, folderDownload, folderProcess, emailConfig):
+def conectar_y_descargar(mes, annio,folderDownload,folderProcess):
+
     inicio_mes = primer_dia_del_mes(mes, annio)
     fin_mes = primer_dia_del_siguiente_mes(mes, annio)
-
-    # Verificar si la carpeta de descarga existe y tiene archivos ZIP
-    archivos_zip = []
-    if os.path.exists(folderDownload):
-        archivos_zip = [f for f in os.listdir(folderDownload) if f.endswith('.zip')]
-    
-    # Mostrar información de archivos existentes
-    print("\n📊 Estado actual de la carpeta de descarga:")
-    print(f"   - Archivos ZIP encontrados: {len(archivos_zip)}")
-    
-    # Conectar a Gmail para obtener el total de correos
-    mail = imaplib.IMAP4_SSL(emailConfig["imap_server"])
-    mail.login(emailConfig["user"], emailConfig["password"])
-    mail.select("inbox")
-    
-    # Buscar correos en el rango de fechas
-    estado, mensajes = mail.search(None, f'(SENTSINCE {inicio_mes} BEFORE {fin_mes} FROM "notificaciones@int.lafactura.co")')
-    if estado != "OK":
-        print("❌ Error al buscar correos.")
-        mail.logout()
-        return
-    
-    ids = mensajes[0].split()
-    total_correos = len(ids)
-    
-    # Mostrar resumen
-    print(f"🔍 Correos encontrados: {total_correos}")
-    print(f"� Archivos descargados: {len(archivos_zip)}")
-    
-    if archivos_zip:
-        respuesta = input("\n¿Desea verificar y descargar archivos faltantes? (s/n): ").strip().lower()
-        if respuesta != 's':
-            print("✅ Continuando con los archivos ya descargados.")
-            mail.logout()
-            return
-    
-    # Si no hay archivos o el usuario quiere continuar, limpiar la conexión
-    mail.logout()
-    
-    # Reconectar para el procesamiento normal
-    mail = imaplib.IMAP4_SSL(emailConfig["imap_server"])
-    mail.login(emailConfig["user"], emailConfig["password"])
-    mail.select("inbox")
 
     # Conectar a Gmail
     mail = imaplib.IMAP4_SSL(emailConfig["imap_server"])
@@ -76,8 +34,8 @@ def conectar_y_descargar(mes, annio, folderDownload, folderProcess, emailConfig)
     mail.select("inbox")
 
     # Buscar correos del día con el asunto específico
-    print(f"🔍 Buscando facturas desde {inicio_mes} hasta {fin_mes}")
-    estado, mensajes = mail.search(None, f'(SENTSINCE {inicio_mes} BEFORE {fin_mes} FROM "notificaciones@int.lafactura.co")')
+    print("Find Facturas desde ",inicio_mes," hasta ",fin_mes)
+    estado, mensajes = mail.search(None, f'(SENTSINCE {inicio_mes} BEFORE {fin_mes} SUBJECT "PEAJES ELECTRONICOS S.A.S.")')
     if estado != "OK":
         print("❌ Error al buscar correos.")
         mail.logout()
@@ -139,21 +97,13 @@ def conectar_y_descargar(mes, annio, folderDownload, folderProcess, emailConfig)
                     print(f"   ❌ Error al descargar {nombre_archivo}: {str(e)}")
     
     mail.logout()
-    
-    # Resumen final
-    total_archivos = len([f for f in os.listdir(folderDownload) if f.endswith('.zip')])
-    print(f"\n📊 Resumen de descarga:")
-    print(f"   - Correos procesados: {total_correos}")
-    print(f"   - Archivos descargados en esta ejecución: {descargados}")
-    print(f"   - Total de archivos en la carpeta: {total_archivos}")
 
-def do_on_start(subFolder,month,year,emailConfig,tenant_id):
-    print("Conect Email with config: ",emailConfig)
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+def do_on_start(subFolder,month,year):
+    base_dir = os.getcwd()
     base_dir = os.path.dirname(os.path.dirname(base_dir))
     print("Folder Base: ",base_dir)
-    downloadZIPS = os.path.join(base_dir,Constants.APLICATION_NAME.value[0],tenant_id, "zip",subFolder)
-    processZIPS = os.path.join(base_dir,Constants.APLICATION_NAME.value[0],tenant_id, "closedZip",subFolder)   
+    downloadZIPS = os.path.join(base_dir, "zip",subFolder)
+    processZIPS = os.path.join(base_dir, "closedZip",subFolder)   
     print("Folder download email: ",downloadZIPS) 
     os.makedirs(downloadZIPS, exist_ok=True)
     conectar_y_descargar(month,year,downloadZIPS,processZIPS,emailConfig)

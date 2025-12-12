@@ -58,13 +58,13 @@ def do_on_create_voucher(factura_id, texto_factura,voucherDir):
     print(f"Factura guardada en: {file_path}")
 
 # ---------- Ejecutar ----------
-def do_on_start_extract_facturacion(subFolder,tenant_id):
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+def do_on_start_extract_facturacion(subFolder):
+    base_dir = os.getcwd()
     base_dir = os.path.dirname(os.path.dirname(base_dir))
-    base_facturas = os.path.join(base_dir,Constants.APLICATION_NAME.value[0],tenant_id, "zip",subFolder)
-    voucher_dir = os.path.join(base_dir,Constants.APLICATION_NAME.value[0],tenant_id, "voucher",subFolder)
-    process_dir = os.path.join(base_dir,Constants.APLICATION_NAME.value[0],tenant_id, "openZip",subFolder)
-    closed_dir = os.path.join(base_dir,Constants.APLICATION_NAME.value[0],tenant_id, "closedZip",subFolder)
+    base_facturas = os.path.join(base_dir, "zip",subFolder)
+    voucher_dir = os.path.join(base_dir, "voucher",subFolder)
+    process_dir = os.path.join(base_dir, "openZip",subFolder)
+    closed_dir = os.path.join(base_dir, "closedZip",subFolder)
     print("📂 Directorio Base:", base_dir)
     print("📂 Directorio base_facturas:", base_facturas)
     print("📂 Directorio voucher_dir:", voucher_dir)

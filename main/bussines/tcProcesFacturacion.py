@@ -88,8 +88,9 @@ def extraer_datos_factura(xml_file):
         referenciaItem = item.findtext('.//cac:SellersItemIdentification/cbc:ID', namespaces=invoice_ns)
         cantidad = item.findtext('cbc:InvoicedQuantity', namespaces=invoice_ns)
         precio = item.findtext('.//cbc:PriceAmount', namespaces=invoice_ns)
-        lineas.append(f"| Referencia:{referenciaItem} |Item: {descripcion} | Cantidad: {cantidad} | Precio: {precio}")
+        lineas.append(f" - {descripcion} | Cantidad: {cantidad} | Precio: {precio}")
 
+    refs = [e.text for e in item.findall('.//cbc:ReferenceID', namespaces=invoice_ns)]  
     fecha_convertida = datetime.strptime(fecha_emision, "%Y-%m-%d").strftime("%d/%m/%Y")
     letras = re.match(r"[A-Za-z]+", factura_id).group()
     numeros = re.search(r"\d+", factura_id).group()
@@ -180,5 +181,9 @@ def procesar_items(items, ns, incluir_referencia=True):
         else:
             linea = f"- {descripcion} | Cantidad: {cantidad} | Precio: {precio} |"
 
-        lineas.append(linea)
-    return lineas,nombre_peaje,numero_placa
+fileXml = os.path.join(os.getcwd(), "testXml","ad090047025200025008b3bb8.xml")
+factura_id, texto_factura = extraer_datos_factura(fileXml)
+print(texto_factura)
+'''
+
+
