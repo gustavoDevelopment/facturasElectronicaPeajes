@@ -9,4 +9,4 @@ __pycache__/
 
 logs/facturae_optimus.log
 main/build/tenant/turboCarga/email.json
-logs/facturae_optimus.log
+logs/*
