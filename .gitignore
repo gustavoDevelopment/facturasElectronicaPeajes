@@ -10,3 +10,9 @@ __pycache__/
 logs/facturae_optimus.log
 main/build/tenant/turboCarga/email.json
 logs/*
+
+# Credenciales OAuth2 / secretos (nunca deben commitearse)
+client_secret*.json
+gmail_token.json
+main/build/tenant/*/gmail_token.json
+main/build/tenant/*/email.json

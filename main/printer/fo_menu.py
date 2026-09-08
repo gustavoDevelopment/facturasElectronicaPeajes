@@ -12,9 +12,10 @@ from typing import Dict, Any, List, Optional, NoReturn
 from config import TENANTS_DIR, DEBUG, get_config
 from logger import get_logger
 from printer.fo_tenants import (
-    load_tenants, list_tenants, add_tenant, 
+    load_tenants, list_tenants, add_tenant,
     edit_tenant, delete_tenant, TENANTS_FILE
 )
+from printer.fo_email_config import configurar_email_tenant
 from disparadores.fo_disparadores import do_on_facture_optimus
 
 # Configuración del logger
@@ -60,6 +61,7 @@ class Menu:
          [3] Editar tenant
          [4] Eliminar tenant
          [5] Ejecutar Facturae Optimus
+         [6] Configurar email de tenant (password / OAuth2)
          [0] Salir
         {line}
         """.format(line="="*50)
@@ -83,6 +85,16 @@ class Menu:
                 delete_tenant(self.tenants, str(self.tenant_path))
             elif opcion == "5":
                 do_on_facture_optimus(self.tenants, str(self.tenant_path))
+            elif opcion == "6":
+                if not self.tenants:
+                    print("\nNo hay tenants registrados.")
+                else:
+                    list_tenants(self.tenants)
+                    tenant_id = input("\nIngrese el ID del tenant a configurar: ").strip()
+                    if tenant_id in self.tenants:
+                        configurar_email_tenant(tenant_id)
+                    else:
+                        print("❌ ID de tenant no válido.")
             elif opcion == "0":
                 self.salir()
             else:

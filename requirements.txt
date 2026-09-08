@@ -1,6 +1,9 @@
 # Dependencias principales
 lxml>=4.9.0  # Para procesamiento XML
 python-dotenv>=0.19.0  # Para manejo de variables de entorno
+openpyxl>=3.0.0  # Para manejo de archivos Excel
+google-auth>=2.25.0  # Para autenticación OAuth2 (Gmail IMAP)
+google-auth-oauthlib>=1.2.0  # Para el flujo OAuth2 "Desktop app"
 
 # Desarrollo
 typing-extensions>=4.0.0  # Para type hints en versiones antiguas de Python

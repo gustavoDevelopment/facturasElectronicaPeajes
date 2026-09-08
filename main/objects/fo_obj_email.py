@@ -41,14 +41,28 @@ class ConfiguracionEmail:
         
 
     def actualizar_config_email(self, imap_server, user, password):
-        """Actualiza la configuración de email"""
+        """Actualiza la configuración de email con autenticación por password de aplicación"""
         if "email" not in self.config:
             self.config["email"] = {}
 
         self.config["email"]["imap_server"] = imap_server
         self.config["email"]["user"] = user
+        self.config["email"]["auth_type"] = "password"
         self.config["email"]["password"] = password
         print("Configuración de email actualizada.")
+
+    def actualizar_config_email_oauth2(self, imap_server, user, oauth_client_secrets, oauth_token):
+        """Actualiza la configuración de email con autenticación OAuth2 (Gmail)"""
+        if "email" not in self.config:
+            self.config["email"] = {}
+
+        self.config["email"]["imap_server"] = imap_server
+        self.config["email"]["user"] = user
+        self.config["email"]["auth_type"] = "oauth2"
+        self.config["email"]["oauth_client_secrets"] = oauth_client_secrets
+        self.config["email"]["oauth_token"] = oauth_token
+        self.config["email"].pop("password", None)
+        print("Configuración de email (OAuth2) actualizada.")
 
     def guardar_configuracion(self):
         """Guarda la configuración actual en el archivo JSON"""

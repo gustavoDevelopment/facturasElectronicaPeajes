@@ -6,6 +6,28 @@ from datetime import datetime,timedelta
 import base64
 import calendar
 from plantilla.constants import Constants
+from objects.fo_gmail_oauth import obtener_credenciales, generar_auth_string
+
+def conectar_imap(emailConfig):
+    """
+    Abre y autentica una conexión IMAP según emailConfig["auth_type"]:
+    - "oauth2": usa un token OAuth2 (Gmail) vía XOAUTH2.
+    - cualquier otro valor (o ausente): usa usuario/contraseña (password de aplicación).
+    """
+    mail = imaplib.IMAP4_SSL(emailConfig["imap_server"])
+
+    if emailConfig.get("auth_type") == "oauth2":
+        creds = obtener_credenciales(
+            emailConfig["oauth_client_secrets"],
+            emailConfig["oauth_token"],
+        )
+        auth_string = generar_auth_string(emailConfig["user"], creds.token)
+        mail.authenticate("XOAUTH2", lambda _: auth_string.encode())
+    else:
+        mail.login(emailConfig["user"], emailConfig["password"])
+
+    mail.select("inbox")
+    return mail
 
 def limpiar_texto(texto):
     return "".join(c for c in texto if c.isalnum() or c in (" ", ".", "_", "-"))
@@ -37,10 +59,8 @@ def conectar_y_descargar(mes, annio, folderDownload, folderProcess, emailConfig)
     print(f"   - Archivos ZIP encontrados: {len(archivos_zip)}")
     
     # Conectar a Gmail para obtener el total de correos
-    mail = imaplib.IMAP4_SSL(emailConfig["imap_server"])
-    mail.login(emailConfig["user"], emailConfig["password"])
-    mail.select("inbox")
-    
+    mail = conectar_imap(emailConfig)
+
     # Buscar correos en el rango de fechas
     estado, mensajes = mail.search(None, f'(SENTSINCE {inicio_mes} BEFORE {fin_mes} FROM "notificaciones@int.lafactura.co")')
     if estado != "OK":
@@ -64,16 +84,9 @@ def conectar_y_descargar(mes, annio, folderDownload, folderProcess, emailConfig)
     
     # Si no hay archivos o el usuario quiere continuar, limpiar la conexión
     mail.logout()
-    
-    # Reconectar para el procesamiento normal
-    mail = imaplib.IMAP4_SSL(emailConfig["imap_server"])
-    mail.login(emailConfig["user"], emailConfig["password"])
-    mail.select("inbox")
 
-    # Conectar a Gmail
-    mail = imaplib.IMAP4_SSL(emailConfig["imap_server"])
-    mail.login(emailConfig["user"], emailConfig["password"])
-    mail.select("inbox")
+    # Reconectar para el procesamiento normal
+    mail = conectar_imap(emailConfig)
 
     # Buscar correos del día con el asunto específico
     print(f"🔍 Buscando facturas desde {inicio_mes} hasta {fin_mes}")
