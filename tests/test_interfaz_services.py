@@ -9,7 +9,7 @@ import pytest
 MAIN_DIR = Path(__file__).parent.parent / "main"
 sys.path.insert(0, str(MAIN_DIR))
 
-from interfaz import services  # noqa: E402
+from interfaz import empresas, services  # noqa: E402
 
 
 def test_mes_anterior():
@@ -52,7 +52,7 @@ def test_listar_tenants_une_tenants_json_y_secretos(tmp_path, monkeypatch):
     (secretos / "otro").mkdir(parents=True)
     (secretos / "otro" / "email.json").write_text("{}")
     (secretos / "vacio").mkdir()
-    monkeypatch.setattr(services, "TENANTS_DIR", tenants)
-    monkeypatch.setattr(services, "SECRETS_DIR", secretos)
+    monkeypatch.setattr(empresas, "TENANTS_DIR", tenants)
+    monkeypatch.setattr(empresas, "SECRETS_DIR", secretos)
 
     assert services.listar_tenants() == ["otro", "turboCarga"]
