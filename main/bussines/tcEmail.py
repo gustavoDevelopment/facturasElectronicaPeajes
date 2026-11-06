@@ -161,7 +161,7 @@ def conectar_y_descargar(mes, annio, folderDownload, folderProcess, emailConfig)
     print(f"   - Total de archivos en la carpeta: {total_archivos}")
 
 def do_on_start(subFolder,month,year,emailConfig,tenant_id):
-    print("Conect Email with config: ",emailConfig)
+    print("Conect Email with user: ",emailConfig.get("user"),"auth:",emailConfig.get("auth_type","password"))
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     base_dir = os.path.dirname(os.path.dirname(base_dir))
     print("Folder Base: ",base_dir)

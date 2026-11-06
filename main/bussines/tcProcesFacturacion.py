@@ -55,40 +55,12 @@ def extraer_datos_factura(xml_file):
     if relatedInvoice is None:
         relatedInvoice="00000"
 
-    # Crear las líneas de ítems para la salida
-    lineas = []
-    l,l2 = [],[]
-    peaje=""
-    peaje1=""
-    placa=""
-    placa1 = ""
-
-    l,peaje,placa=(procesar_items(items, invoice_ns, incluir_referencia=True))
-    l2,peaje1,placa1=(procesar_items(notaCredito, invoice_ns, incluir_referencia=True))
-    
-    nombre_peaje=peaje
-    numero_placa=placa
-
-    nombre_peaje=peaje1
-    numero_placa=placa1
-    lineas.extend(l)
-    lineas.extend(l2)
-
-    for item in items:
-        descripcion = item.findtext('.//cbc:Description', namespaces=invoice_ns)
-        nombre_peaje, numero_placa=extraer_datos_peaje(descripcion)
-        referenciaItem = item.findtext('.//cac:SellersItemIdentification/cbc:ID', namespaces=invoice_ns)
-        cantidad = item.findtext('cbc:InvoicedQuantity', namespaces=invoice_ns)
-        precio = item.findtext('.//cbc:PriceAmount', namespaces=invoice_ns)
-        lineas.append(f"| Referencia:{referenciaItem} |Item: {descripcion} | Cantidad: {cantidad} | Precio: {precio}")
-    
-    for item in notaCredito:    
-        descripcion = item.findtext('.//cbc:Description', namespaces=invoice_ns)
-        nombre_peaje, numero_placa=extraer_datos_peaje(descripcion)
-        referenciaItem = item.findtext('.//cac:SellersItemIdentification/cbc:ID', namespaces=invoice_ns)
-        cantidad = item.findtext('cbc:InvoicedQuantity', namespaces=invoice_ns)
-        precio = item.findtext('.//cbc:PriceAmount', namespaces=invoice_ns)
-        lineas.append(f"| Referencia:{referenciaItem} |Item: {descripcion} | Cantidad: {cantidad} | Precio: {precio}")
+    # Líneas de ítems para la salida; peaje y placa salen del último ítem
+    # (nota crédito si existe, de lo contrario factura)
+    lineas, peaje, placa = procesar_items(items, invoice_ns, incluir_referencia=True)
+    lineas_nc, peaje_nc, placa_nc = procesar_items(notaCredito, invoice_ns, incluir_referencia=True)
+    lineas.extend(lineas_nc)
+    nombre_peaje, numero_placa = (peaje_nc, placa_nc) if notaCredito else (peaje, placa)
 
     fecha_convertida = datetime.strptime(fecha_emision, "%Y-%m-%d").strftime("%d/%m/%Y")
     letras = re.match(r"[A-Za-z]+", factura_id).group()
