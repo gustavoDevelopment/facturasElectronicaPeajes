@@ -1,10 +1,12 @@
 """Rutas de trabajo de la aplicación (descargas, ZIPs, vouchers, salida)."""
 import shutil
+import threading
 from pathlib import Path
 
 from settings import get_output_dir, user_data_dir
 
 MAIN_DIR = Path(__file__).resolve().parents[1]
+_LOCK_PLANTILLA = threading.Lock()
 
 
 def tenant_work_dir(tenant_id: str, output_dir=None) -> Path:
@@ -23,9 +25,10 @@ def plantilla_path(tenant_id: str) -> Path:
     copia la que viene con la aplicación (main/build/tenant/<tenant>/).
     """
     destino = tenants_dir() / tenant_id / "plantilla.json"
-    if not destino.exists():
-        incluida = MAIN_DIR / "build" / "tenant" / tenant_id / "plantilla.json"
-        if incluida.exists():
-            destino.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy(incluida, destino)
+    with _LOCK_PLANTILLA:  # varios procesos pueden pedirla a la vez
+        if not destino.exists():
+            incluida = MAIN_DIR / "build" / "tenant" / tenant_id / "plantilla.json"
+            if incluida.exists():
+                destino.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy(incluida, destino)
     return destino
