@@ -81,6 +81,30 @@ cp .env.example .env
 python src/main.py
 ```
 
+## Configuración del correo (secretos)
+
+Las credenciales de correo **no viven en el repositorio**. Se guardan por tenant en:
+
+```
+~/.facturae_optimus/secrets/<tenant_id>/
+├── email.json         # servidor IMAP, usuario y tipo de autenticación
+└── gmail_token.json   # refresh token OAuth2 (solo si usas OAuth2)
+```
+
+La ruta base se puede cambiar con `SECRETS_DIR` en el `.env`.
+
+### En una máquina nueva
+
+1. Instalar dependencias: `python -m pip install -r requirements.txt` (dentro de un venv).
+2. Copiar `.env.example` a `.env` (opcional: definir `SECRETS_DIR`).
+3. Ejecutar la app y usar la **opción 6 del menú (configurar email del tenant)**. El asistente crea el `email.json` en la carpeta de secretos y permite elegir:
+   - **Password de aplicación** (legacy).
+   - **OAuth 2.0 para Gmail** (recomendado): requiere un OAuth Client ID tipo *Desktop app* creado en Google Cloud Console, con la Gmail API habilitada, y el `client_secret*.json` descargado (guárdalo fuera del repo). El asistente abre el navegador para autorizar y guarda el token.
+
+Alternativa: copiar la carpeta `<tenant_id>/` desde otra máquina a `SECRETS_DIR`. Si usa OAuth2, hay que corregir las rutas absolutas `oauth_client_secrets` y `oauth_token` dentro del `email.json`.
+
+Nunca commitees `email.json`, `gmail_token.json` ni `client_secret*.json`.
+
 ## Contribución
 
 1. Fork del repositorio

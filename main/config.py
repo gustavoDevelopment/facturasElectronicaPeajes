@@ -24,6 +24,21 @@ BASE_DIR = Path(__file__).parent.parent
 TENANTS_DIR = BASE_DIR / os.getenv("TENANTS_DIR", "build/tenant")
 LOG_DIR = BASE_DIR / os.getenv("LOG_DIR", "logs")
 
+# Secretos por tenant (email.json, gmail_token.json), fuera del repositorio
+SECRETS_DIR = Path(
+    os.getenv("SECRETS_DIR", Path.home() / ".facturae_optimus" / "secrets")
+).expanduser()
+
+
+def tenant_secrets_dir(tenant_id: str) -> Path:
+    """Directorio de secretos de un tenant (fuera del repo)."""
+    return SECRETS_DIR / tenant_id
+
+
+def tenant_email_path(tenant_id: str) -> str:
+    """Ruta del email.json de un tenant."""
+    return str(tenant_secrets_dir(tenant_id) / "email.json")
+
 # Configuración de logging
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 LOG_FORMAT = os.getenv(
