@@ -2,12 +2,14 @@
 import os
 import queue
 import threading
+import webbrowser
 from tkinter import filedialog, messagebox
 
 import customtkinter as ctk
 
 from bussines.reporter import Reporter
 from interfaz import services
+from interfaz.ayuda import AYUDA, ENLACES
 from settings import get_output_dir, set_output_dir
 
 MESES = [str(m) for m in range(1, 13)]
@@ -42,10 +44,11 @@ class App(ctk.CTk):
         self.cola = queue.Queue()
         self.ultimo_excel = ""
 
-        tabs = ctk.CTkTabview(self)
-        tabs.pack(fill="both", expand=True, padx=12, pady=12)
-        self._tab_procesar(tabs.add("Procesar"))
-        self._tab_correo(tabs.add("Correo"))
+        self.tabs = ctk.CTkTabview(self)
+        self.tabs.pack(fill="both", expand=True, padx=12, pady=12)
+        self._tab_procesar(self.tabs.add("Procesar"))
+        self._tab_correo(self.tabs.add("Correo"))
+        self._tab_ayuda(self.tabs.add("Ayuda"))
         self.after(100, self._leer_cola)
 
     # ---------- Procesar ----------
@@ -181,6 +184,8 @@ class App(ctk.CTk):
         ctk.CTkButton(tab, text="Elegir…", width=80, command=self._elegir_secret).grid(row=5, column=2)
 
         ctk.CTkButton(tab, text="Guardar / Vincular", command=self._guardar_correo).grid(row=6, column=1, sticky="w", padx=8, pady=12)
+        ctk.CTkButton(tab, text="¿Cómo obtengo el client_secret.json?", fg_color="transparent", border_width=1,
+                      text_color=("gray10", "gray90"), command=lambda: self.tabs.set("Ayuda")).grid(row=6, column=2, padx=8)
         self.c_estado = ctk.CTkLabel(tab, text="", wraplength=620, justify="left")
         self.c_estado.grid(row=7, column=0, columnspan=3, sticky="w")
 
@@ -213,6 +218,18 @@ class App(ctk.CTk):
                 self.cola.put(("estado", f"❌ {e}"))
 
         threading.Thread(target=trabajo, daemon=True).start()
+
+
+    # ---------- Ayuda ----------
+    def _tab_ayuda(self, tab):
+        enlaces = ctk.CTkFrame(tab, fg_color="transparent")
+        enlaces.pack(fill="x")
+        for texto, url in ENLACES:
+            ctk.CTkButton(enlaces, text=texto, command=lambda u=url: webbrowser.open(u)).pack(side="left", padx=(0, 8), pady=(0, 8))
+        texto = ctk.CTkTextbox(tab, wrap="word")
+        texto.pack(fill="both", expand=True)
+        texto.insert("1.0", AYUDA)
+        texto.configure(state="disabled")
 
 
 def autotest() -> str:
