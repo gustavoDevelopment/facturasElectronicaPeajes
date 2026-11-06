@@ -81,22 +81,61 @@ Requiere `customtkinter` (incluido en `requirements.txt`).
 
 ## Instaladores (macOS y Windows)
 
-El workflow `.github/workflows/build.yml` genera la aplicación sin necesidad de
-instalar Python: `FacturaeOptimus-macos.zip` (`.app`) y `FacturaeOptimus-windows.zip`
-(carpeta con `FacturaeOptimus.exe`). Se ejecuta a mano (Actions > Build apps > Run
-workflow) o al crear un tag `v*`, y deja los archivos como artefactos. Cada build corre
-las pruebas y una autoprueba del binario (`--check`).
+Se generan con PyInstaller y no requieren tener Python instalado:
 
-Para publicar una versión descargable (sección **Releases** del repositorio):
-`git tag v1.0.0 && git push origin v1.0.0`. El workflow construye ambos sistemas y
-adjunta `FacturaeOptimus-macos.zip` y `FacturaeOptimus-windows.zip` a esa release.
+- `FacturaeOptimus-macos.zip` → `FacturaeOptimus.app`
+- `FacturaeOptimus-windows.zip` → carpeta `FacturaeOptimus/` con `FacturaeOptimus.exe`
 
-Localmente: `pip install pyinstaller && pyinstaller facturae.spec`.
+Los binarios **no se guardan en git** (pesan decenas de MB y llenarían el historial);
+se publican como *artefactos* del workflow o en la sección **Releases** del repositorio.
 
-Primer arranque sin firma digital:
-- **macOS:** clic derecho sobre la app > Abrir (y confirmar). Si dice que está dañada:
-  `xattr -cr FacturaeOptimus.app`.
-- **Windows:** SmartScreen > "Más información" > "Ejecutar de todas formas".
+### Publicar una versión (recomendado)
+
+1. Dejar `master` actualizada y con las pruebas en verde:
+   ```bash
+   git switch master && git pull
+   python -m pytest tests -q
+   ```
+2. Crear y subir un tag que empiece con `v`:
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+3. En GitHub, pestaña **Actions > Build apps**, esperar a que terminen los trabajos
+   `macos-latest`, `windows-latest` y `release` (unos minutos).
+4. Descargar los zips desde **Releases** (columna derecha del repo > *Releases* > `v1.0.0`).
+
+Cada build corre las pruebas y una autoprueba del binario (`--check`) antes de publicar.
+Si un trabajo falla, no se crea la release: revisar el log del paso en rojo.
+
+Para rehacer una versión con el mismo número hay que borrar la release y el tag
+(`git push origin --delete v1.0.0` y borrarla en GitHub) y volver a empujarlo.
+
+### Solo probar el build (sin publicar)
+
+**Actions > Build apps > Run workflow** (rama `master`). Genera los zips como
+*Artifacts* al final de la ejecución, sin crear release.
+
+### Generar el `.app` localmente (solo macOS)
+
+```bash
+python -m pip install pyinstaller
+python -m PyInstaller facturae.spec --noconfirm
+dist/FacturaeOptimus.app/Contents/MacOS/FacturaeOptimus --check   # debe imprimir OK
+ditto -c -k --keepParent dist/FacturaeOptimus.app FacturaeOptimus-macos.zip
+```
+
+El `.exe` solo se puede construir en Windows (por ejemplo con el workflow).
+
+### Instalar y abrir (la app no está firmada digitalmente)
+
+- **macOS:** descomprimir, mover `FacturaeOptimus.app` a Aplicaciones y, la primera vez,
+  clic derecho > Abrir > Abrir. Si dice que está dañada:
+  `xattr -cr /Applications/FacturaeOptimus.app`.
+- **Windows:** descomprimir **toda** la carpeta (no mover el `.exe` solo) y ejecutar
+  `FacturaeOptimus.exe`. Si aparece SmartScreen: "Más información" > "Ejecutar de todas formas".
+- En cada equipo hay que configurar el correo desde la pestaña **Correo**; las credenciales
+  no viajan con la aplicación.
 
 ## Uso
 
