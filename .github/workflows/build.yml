@@ -1,0 +1,41 @@
+name: Build apps
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install -r requirements-dev.txt pyinstaller
+      - name: Tests
+        run: python -m pytest tests -q
+      - name: Build
+        run: pyinstaller facturae.spec --noconfirm
+      - name: Self-check (macOS)
+        if: runner.os == 'macOS'
+        run: dist/FacturaeOptimus.app/Contents/MacOS/FacturaeOptimus --check
+      - name: Self-check (Windows)
+        if: runner.os == 'Windows'
+        run: dist/FacturaeOptimus/FacturaeOptimus.exe --check
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        run: ditto -c -k --keepParent dist/FacturaeOptimus.app FacturaeOptimus-macos.zip
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        run: Compress-Archive -Path dist/FacturaeOptimus -DestinationPath FacturaeOptimus-windows.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FacturaeOptimus-${{ runner.os }}
+          path: FacturaeOptimus-*.zip

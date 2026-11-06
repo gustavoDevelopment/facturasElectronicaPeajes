@@ -79,6 +79,21 @@ python gui_main.py
 
 Requiere `customtkinter` (incluido en `requirements.txt`).
 
+## Instaladores (macOS y Windows)
+
+El workflow `.github/workflows/build.yml` genera la aplicación sin necesidad de
+instalar Python: `FacturaeOptimus-macos.zip` (`.app`) y `FacturaeOptimus-windows.zip`
+(carpeta con `FacturaeOptimus.exe`). Se ejecuta a mano (Actions > Build apps > Run
+workflow) o al crear un tag `v*`, y deja los archivos como artefactos. Cada build corre
+las pruebas y una autoprueba del binario (`--check`).
+
+Localmente: `pip install pyinstaller && pyinstaller facturae.spec`.
+
+Primer arranque sin firma digital:
+- **macOS:** clic derecho sobre la app > Abrir (y confirmar). Si dice que está dañada:
+  `xattr -cr FacturaeOptimus.app`.
+- **Windows:** SmartScreen > "Más información" > "Ejecutar de todas formas".
+
 ## Uso
 
 1. Configurar las variables de entorno:

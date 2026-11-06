@@ -21,3 +21,7 @@ main/build/tenant/*/email.json
 *.egg-info/
 main/Facturae_Optimus/
 .xdp-*
+
+# PyInstaller
+dist/
+build/facturae/

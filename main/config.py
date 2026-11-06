@@ -6,6 +6,7 @@ valores por defecto para la aplicación.
 """
 import os
 import shutil
+import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
 from dotenv import load_dotenv
@@ -32,7 +33,9 @@ TENANTS_DIR = Path(os.getenv("TENANTS_DIR") or user_data_dir() / "tenants")
 LOG_DIR = Path(os.getenv("LOG_DIR") or user_data_dir() / "logs")
 
 # Primer arranque: copiar el tenants.json que trae el repositorio
-_incluido = BASE_DIR / "build" / "tenant" / "tenants.json"
+# (empaquetado con PyInstaller, los recursos están en sys._MEIPASS)
+_RECURSOS = Path(getattr(sys, "_MEIPASS", BASE_DIR))
+_incluido = _RECURSOS / "build" / "tenant" / "tenants.json"
 if not (TENANTS_DIR / "tenants.json").exists() and _incluido.exists():
     TENANTS_DIR.mkdir(parents=True, exist_ok=True)
     shutil.copy(_incluido, TENANTS_DIR / "tenants.json")
