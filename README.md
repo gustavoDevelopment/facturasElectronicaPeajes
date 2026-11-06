@@ -1,186 +1,287 @@
 # Facturae Optimus
 
-Sistema de gestión de facturas electrónicas para peajes.
+Aplicación de escritorio (macOS y Windows) que automatiza la gestión de **facturas electrónicas de peajes**: descarga desde el correo los ZIP con las facturas del mes, extrae los datos de los XML y genera el Excel listo para causar.
 
-## Estructura del Proyecto
+[![Build apps](https://github.com/gustavoDevelopment/facturasElectronicaPeajes/actions/workflows/build.yml/badge.svg)](https://github.com/gustavoDevelopment/facturasElectronicaPeajes/actions/workflows/build.yml)
+
+## Contenido
+
+- [Qué hace](#qué-hace)
+- [Instalación para usuarios](#instalación-para-usuarios)
+- [Primer uso en un equipo nuevo](#primer-uso-en-un-equipo-nuevo-sin-nada-configurado)
+- [Uso de la interfaz gráfica](#uso-de-la-interfaz-gráfica)
+- [Configuración](#configuración)
+- [Generar los instaladores (macOS y Windows)](#generar-los-instaladores-macos-y-windows)
+- [Desarrollo](#desarrollo)
+- [Arquitectura](#arquitectura)
+- [Solución de problemas](#solución-de-problemas)
+- [Seguridad](#seguridad)
+- [Contribuir](#contribuir)
+
+## Qué hace
+
+1. **Descarga** los correos del mes (remitente `notificaciones@int.lafactura.co`) por IMAP y guarda los ZIP adjuntos, sin repetir los que ya existen.
+2. **Descomprime** los ZIP y lee los XML (facturas y notas crédito UBL).
+3. **Genera** un voucher de texto por factura y un **Excel** con las columnas de la plantilla del tenant.
+4. Soporta **varios tenants** (empresas), cada uno con su correo, su plantilla y su carpeta de trabajo.
+
+El correo puede autenticarse con **Google (OAuth2, recomendado)** o con **contraseña de aplicación**.
+
+## Instalación para usuarios
+
+No hace falta tener Python. Descarga la última versión desde la sección **[Releases](https://github.com/gustavoDevelopment/facturasElectronicaPeajes/releases)**:
+
+| Sistema | Archivo | Cómo abrirlo |
+|---|---|---|
+| macOS | `FacturaeOptimus-macos.zip` | Descomprimir, mover `FacturaeOptimus.app` a *Aplicaciones* y abrir |
+| Windows | `FacturaeOptimus-windows.zip` | Descomprimir **toda** la carpeta y ejecutar `FacturaeOptimus.exe` |
+
+La aplicación **no está firmada digitalmente**, por lo que el sistema avisa la primera vez:
+
+- **macOS:** clic derecho sobre la app → **Abrir** → **Abrir**. Si dice que está dañada:
+  ```bash
+  xattr -cr /Applications/FacturaeOptimus.app
+  ```
+- **Windows:** en SmartScreen pulsar **Más información** → **Ejecutar de todas formas**. No muevas el `.exe` fuera de su carpeta: necesita los archivos que lo acompañan.
+
+Las credenciales de correo **no viajan con la aplicación**: hay que configurarlas en cada equipo (ver [Uso](#uso-de-la-interfaz-gráfica)).
+
+## Primer uso en un equipo nuevo (sin nada configurado)
+
+En un equipo limpio no existe el `email.json` ni el token de Google: **la propia aplicación los crea** desde la pestaña **Correo**. No hay que copiar ni editar archivos a mano.
+
+1. Instala y abre la aplicación (ver [Instalación para usuarios](#instalación-para-usuarios)).
+2. Elige cómo autenticar el correo:
+   - **Contraseña de aplicación** (lo más rápido, no caduca): en la cuenta de Google activa la verificación en dos pasos, crea una *contraseña de aplicación* y úsala en la pestaña **Correo**. Salta al paso 4.
+   - **Google (OAuth2)**: sigue el paso 3 una sola vez para obtener el archivo `client_secret.json`.
+3. **Crear el `client_secret.json` en Google Cloud Console** (solo con OAuth2):
+   1. Entra a <https://console.cloud.google.com/> y crea un proyecto (por ejemplo `facturae-optimus`).
+   2. **APIs y servicios → Biblioteca**: busca **Gmail API** y pulsa **Habilitar**.
+   3. **APIs y servicios → Pantalla de consentimiento de OAuth**: tipo **Externo**, completa nombre y correo de contacto y, en *Usuarios de prueba*, agrega la cuenta de Gmail que recibe las facturas.
+   4. **APIs y servicios → Credenciales → Crear credenciales → ID de cliente de OAuth**, tipo de aplicación **Aplicación de escritorio**.
+   5. Descarga el JSON (**Descargar JSON**) y guárdalo **fuera del repositorio** (por ejemplo en `Documentos`).
+
+   > Mientras la pantalla de consentimiento esté en estado **Prueba**, Google caduca el token a los **7 días** y habrá que volver a vincular. Para que no caduque, pulsa **Publicar aplicación** en esa pantalla (para uso propio basta con aceptar el aviso de "app no verificada") o usa la contraseña de aplicación.
+4. En la pestaña **Correo** de la app:
+   1. **Tenant:** el nombre de la empresa, por ejemplo `turboCarga` (es el mismo nombre que luego eliges en *Procesar*).
+   2. **Servidor IMAP:** `imap.gmail.com`. **Correo:** la cuenta que recibe las facturas.
+   3. Marca **Google (OAuth2)**, elige el `client_secret.json` con *Elegir…* y pulsa **Guardar / Vincular**; se abre el navegador, inicia sesión y acepta los permisos. Con contraseña de aplicación, escríbela y pulsa **Guardar / Vincular**.
+5. Al ver `✅ Guardado en …` ya existen, creados por la app, el `email.json` y (con OAuth2) el `gmail_token.json` en la carpeta de credenciales (ver [Configuración](#configuración)). El tenant aparece en la lista de la pestaña **Procesar**.
+6. En **Procesar** elige tenant, mes, año y la **carpeta de salida**, y pulsa **Descargar y procesar**.
+
+Esto se hace **una sola vez por tenant y por equipo**; las siguientes veces solo se usa la pestaña **Procesar**.
+
+## Uso de la interfaz gráfica
+
+### 1. Configurar el correo (una sola vez por tenant)
+
+Pestaña **Correo**:
+
+1. Escribe el **nombre del tenant** (por ejemplo `turboCarga`), el servidor IMAP (`imap.gmail.com`) y el correo.
+2. Elige el tipo de autenticación:
+   - **Google (OAuth2):** selecciona el archivo `client_secret.json` y pulsa **Guardar / Vincular**; se abre el navegador para autorizar el acceso.
+   - **Contraseña de aplicación:** escribe la contraseña y pulsa **Guardar / Vincular**.
+
+> Para OAuth2 se necesita un *OAuth Client ID* de tipo **Desktop app**, creado en Google Cloud Console con la **Gmail API** habilitada. Descarga su `client_secret.json` y guárdalo **fuera del repositorio**.
+
+### 2. Procesar un mes
+
+Pestaña **Procesar**:
+
+1. Elige el **tenant**, el **mes** y el **año** (por defecto, el mes anterior).
+2. Elige la **carpeta de salida** con *Elegir…* (una sola para todos los tenants).
+3. Pulsa **Descargar y procesar**. Verás la barra de progreso y el registro en vivo.
+4. Al terminar, usa **Abrir Excel** o **Abrir carpeta de salida**.
+
+Si ya hay ZIP descargados del mes, la casilla *Verificar y descargar faltantes* decide si se vuelve a consultar el correo.
+
+### Dónde queda cada cosa
 
 ```
-.
-├── main/
-│   ├── bussines/         # Lógica de negocio
-│   ├── config.py         # Configuración
-│   ├── disparadores/     # Triggers y eventos
-│   ├── fo_start.py       # Punto de entrada
-│   ├── logger.py         # Manejo de logs
-│   ├── objects/          # Definición de objetos
-│   ├── plantilla/        # Plantillas
-│   ├── printer/          # Módulo de impresión
+<carpeta de salida>/
+└── <tenant>/
+    ├── zip/<mes>_<año>/        ZIP descargados pendientes
+    ├── openZip/<mes>_<año>/    XML descomprimidos
+    ├── closedZip/<mes>_<año>/  ZIP ya procesados
+    ├── voucher/<mes>_<año>/    un .txt por factura
+    └── output/                 documento_<mes>_<año>.xlsx
 ```
 
-## Características
+## Configuración
 
-- Procesamiento automático de facturas XML
-- Manejo de correo electrónico para recepción de facturas
-- Generación de plantillas Excel para reportes
-- Sistema de impresión de facturas
+Los datos de la aplicación viven fuera del código, en la carpeta del usuario:
 
-## Requisitos
+| Qué | macOS | Windows |
+|---|---|---|
+| Tenants, plantillas, logs, `settings.json` | `~/Library/Application Support/FacturaeOptimus` | `%APPDATA%\FacturaeOptimus` |
+| Credenciales de correo (por tenant) | `~/.facturae_optimus/secrets/<tenant>/` | `%USERPROFILE%\.facturae_optimus\secrets\<tenant>\` |
+| Carpeta de salida por defecto | `~/Documents/Facturae_Optimus` | `%USERPROFILE%\Documents\Facturae_Optimus` |
 
-- Python 3.8+
-- pip
+La plantilla de ejemplo incluida se copia a la carpeta de datos la primera vez que se usa un tenant.
 
-## Instalación
+Variables de entorno opcionales (también en un archivo `.env`, ver `.env.example`):
 
-1. Clonar el repositorio:
-   ```bash
-git clone https://github.com/gustavoDevelopment/facturasElectronicaPeajes.git
-cd facturasElectronicaPeajes
-```
+| Variable | Efecto |
+|---|---|
+| `FACTURAE_HOME` | Cambia la carpeta de datos de la aplicación |
+| `OUTPUT_DIR` | Fuerza la carpeta de salida (prevalece sobre `settings.json`) |
+| `SECRETS_DIR` | Cambia la carpeta de credenciales |
+| `TENANTS_DIR`, `LOG_DIR` | Cambian la ubicación de tenants y logs |
+| `LOG_LEVEL`, `DEBUG` | Nivel de logs y modo depuración |
 
-2. Crear y activar entorno virtual:
-   ```bash
-python -m venv venv
-source venv/bin/activate  # En Windows: venv\Scripts\activate
-```
+## Generar los instaladores (macOS y Windows)
 
-3. Instalar dependencias:
-   ```bash
-pip install -r requirements.txt
-```
+Los instaladores se construyen con **PyInstaller** a partir de `facturae.spec`. **PyInstaller no compila de un sistema a otro**: el `.app` se construye en un Mac y el `.exe` en un Windows. Por eso la vía recomendada es el workflow de GitHub Actions, que construye ambos.
 
-## Arquitectura del núcleo
+Los binarios **no se guardan en git**; se publican como *artifacts* del workflow o en **Releases**.
 
-La lógica de `main/bussines/` no usa `input()` ni `print()`: recibe parámetros,
-devuelve resultados (`ResultadoDescarga`, `ResultadoProceso`) y reporta eventos a
-un `Reporter` (`bussines/reporter.py`). El menú de consola usa `ConsoleReporter` y
-hace las preguntas al usuario; otra interfaz (por ejemplo gráfica) solo debe
-heredar de `Reporter` y llamar a las mismas funciones.
+### Opción A — Publicar una versión con GitHub Actions (recomendada)
 
-Los datos de trabajo (ZIPs, vouchers, Excel de salida) se guardan en una **carpeta
-de salida global**, con una subcarpeta por tenant (`<salida>/<tenant>/{zip,voucher,output,...}`).
-Se define con `OUTPUT_DIR` o `settings.json` (`set_output_dir`); si no, se usa
-`~/Documents/Facturae_Optimus`.
+Genera los dos instaladores y los deja descargables en **Releases**.
 
-Tenants, plantillas, logs y `settings.json` viven en la carpeta de datos del usuario
-(`~/Library/Application Support/FacturaeOptimus` en macOS, `%APPDATA%\FacturaeOptimus`
-en Windows), configurable con `FACTURAE_HOME`. La plantilla incluida en el repositorio
-se copia ahí la primera vez que se usa un tenant.
-
-## Interfaz gráfica
-
-```bash
-python gui_main.py
-```
-
-- **Procesar:** elige tenant, mes y año (por defecto el mes anterior) y la carpeta de
-  salida; muestra el progreso y el registro, y permite abrir el Excel o la carpeta.
-- **Correo:** configura el correo del tenant sin editar archivos: Google (OAuth2, con
-  selector del `client_secret.json` y navegador para autorizar) o contraseña de aplicación.
-
-Requiere `customtkinter` (incluido en `requirements.txt`).
-
-## Instaladores (macOS y Windows)
-
-Se generan con PyInstaller y no requieren tener Python instalado:
-
-- `FacturaeOptimus-macos.zip` → `FacturaeOptimus.app`
-- `FacturaeOptimus-windows.zip` → carpeta `FacturaeOptimus/` con `FacturaeOptimus.exe`
-
-Los binarios **no se guardan en git** (pesan decenas de MB y llenarían el historial);
-se publican como *artefactos* del workflow o en la sección **Releases** del repositorio.
-
-### Publicar una versión (recomendado)
-
-1. Dejar `master` actualizada y con las pruebas en verde:
+1. Deja `master` actualizada y con las pruebas en verde:
    ```bash
    git switch master && git pull
    python -m pytest tests -q
    ```
-2. Crear y subir un tag que empiece con `v`:
+2. Crea y sube un tag que empiece con `v`:
    ```bash
    git tag v1.0.0
    git push origin v1.0.0
    ```
-3. En GitHub, pestaña **Actions > Build apps**, esperar a que terminen los trabajos
-   `macos-latest`, `windows-latest` y `release` (unos minutos).
-4. Descargar los zips desde **Releases** (columna derecha del repo > *Releases* > `v1.0.0`).
+3. En GitHub abre **Actions → Build apps** y espera a que terminen los trabajos `macos-latest`, `windows-latest` y `release` (unos minutos).
+4. Descarga `FacturaeOptimus-macos.zip` y `FacturaeOptimus-windows.zip` desde **Releases → v1.0.0**.
 
-Cada build corre las pruebas y una autoprueba del binario (`--check`) antes de publicar.
-Si un trabajo falla, no se crea la release: revisar el log del paso en rojo.
+Cada trabajo instala dependencias, corre las pruebas, construye, ejecuta una **autoprueba del binario** (`--check`) y empaqueta. Si algo falla no se crea la release: revisa el log del paso en rojo.
 
-Para rehacer una versión con el mismo número hay que borrar la release y el tag
-(`git push origin --delete v1.0.0` y borrarla en GitHub) y volver a empujarlo.
+Para rehacer un número de versión, borra primero la release y el tag (`git push origin --delete v1.0.0`) y vuelve a crearlo.
 
-### Solo probar el build (sin publicar)
+Si el repositorio restringe los permisos, activa *Read and write permissions* en **Settings → Actions → General → Workflow permissions**.
 
-**Actions > Build apps > Run workflow** (rama `master`). Genera los zips como
-*Artifacts* al final de la ejecución, sin crear release.
+### Opción B — Solo probar el build, sin publicar
 
-### Generar el `.app` localmente (solo macOS)
+**Actions → Build apps → Run workflow** (rama `master`). Los zips quedan como **Artifacts** al final de la ejecución, sin crear release.
+
+### Opción C — Construir en tu propio equipo
+
+Requisitos: Python 3.9 o superior con Tk (incluido en los instaladores oficiales de python.org y en `python-tk` de Homebrew).
+
+#### macOS → `FacturaeOptimus.app`
 
 ```bash
-python -m pip install pyinstaller
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements-dev.txt pyinstaller
+
+python -m pytest tests -q
 python -m PyInstaller facturae.spec --noconfirm
+
 dist/FacturaeOptimus.app/Contents/MacOS/FacturaeOptimus --check   # debe imprimir OK
 ditto -c -k --keepParent dist/FacturaeOptimus.app FacturaeOptimus-macos.zip
 ```
 
-El `.exe` solo se puede construir en Windows (por ejemplo con el workflow).
+Usa `ditto` para el zip: el `zip` normal puede dañar los permisos del `.app`.
 
-### Instalar y abrir (la app no está firmada digitalmente)
+#### Windows → `FacturaeOptimus.exe`
 
-- **macOS:** descomprimir, mover `FacturaeOptimus.app` a Aplicaciones y, la primera vez,
-  clic derecho > Abrir > Abrir. Si dice que está dañada:
-  `xattr -cr /Applications/FacturaeOptimus.app`.
-- **Windows:** descomprimir **toda** la carpeta (no mover el `.exe` solo) y ejecutar
-  `FacturaeOptimus.exe`. Si aparece SmartScreen: "Más información" > "Ejecutar de todas formas".
-- En cada equipo hay que configurar el correo desde la pestaña **Correo**; las credenciales
-  no viajan con la aplicación.
+En PowerShell:
 
-## Uso
+```powershell
+py -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -r requirements-dev.txt pyinstaller
 
-1. Configurar las variables de entorno:
-   ```bash
-cp .env.example .env
-# Editar .env con las configuraciones necesarias
+python -m pytest tests -q
+python -m PyInstaller facturae.spec --noconfirm
+
+.\dist\FacturaeOptimus\FacturaeOptimus.exe --check   # debe imprimir OK
+Compress-Archive -Path dist\FacturaeOptimus -DestinationPath FacturaeOptimus-windows.zip
 ```
 
-2. Ejecutar la aplicación:
-   ```bash
-python __main__.py
+Si PowerShell bloquea la activación del entorno, ejecuta una vez `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
+
+El resultado en Windows es una **carpeta** (`dist\FacturaeOptimus\`) que debe distribuirse completa.
+
+### Qué incluye el build
+
+`facturae.spec` empaqueta la interfaz (`gui_main.py`), los recursos de `customtkinter`, el `tenants.json` y las plantillas `plantilla.json` de ejemplo. La opción `--check` abre y cierra la ventana y comprueba que esos recursos están presentes.
+
+## Desarrollo
+
+### Ejecutar desde el código
+
+```bash
+git clone https://github.com/gustavoDevelopment/facturasElectronicaPeajes.git
+cd facturasElectronicaPeajes
+
+python3 -m venv .venv
+source .venv/bin/activate            # Windows: .venv\Scripts\Activate.ps1
+python -m pip install -r requirements-dev.txt
+
+python gui_main.py                   # interfaz gráfica
+python __main__.py                   # menú de consola
 ```
 
-## Configuración del correo (secretos)
+Para probar sin tocar tus datos reales: `FACTURAE_HOME=/tmp/prueba python gui_main.py`.
 
-Las credenciales de correo **no viven en el repositorio**. Se guardan por tenant en:
+### Pruebas
 
-```
-~/.facturae_optimus/secrets/<tenant_id>/
-├── email.json         # servidor IMAP, usuario y tipo de autenticación
-└── gmail_token.json   # refresh token OAuth2 (solo si usas OAuth2)
+```bash
+python -m pytest tests -q
 ```
 
-La ruta base se puede cambiar con `SECRETS_DIR` en el `.env`.
+Cubren la extracción de datos de los XML, la descarga por IMAP (simulada), la generación del Excel, los ajustes portables y los servicios de la interfaz.
 
-### En una máquina nueva
+### Dependencias
 
-1. Instalar dependencias: `python -m pip install -r requirements.txt` (dentro de un venv).
-2. Copiar `.env.example` a `.env` (opcional: definir `SECRETS_DIR`).
-3. Ejecutar la app y usar la **opción 6 del menú (configurar email del tenant)**. El asistente crea el `email.json` en la carpeta de secretos y permite elegir:
-   - **Password de aplicación** (legacy).
-   - **OAuth 2.0 para Gmail** (recomendado): requiere un OAuth Client ID tipo *Desktop app* creado en Google Cloud Console, con la Gmail API habilitada, y el `client_secret*.json` descargado (guárdalo fuera del repo). El asistente abre el navegador para autorizar y guarda el token.
+- `requirements.txt`: lo necesario para ejecutar (lxml, openpyxl, python-dotenv, google-auth, google-auth-oauthlib, customtkinter).
+- `requirements-dev.txt`: añade pytest, black, pylint y sphinx.
 
-Alternativa: copiar la carpeta `<tenant_id>/` desde otra máquina a `SECRETS_DIR`. Si usa OAuth2, hay que corregir las rutas absolutas `oauth_client_secrets` y `oauth_token` dentro del `email.json`.
+## Arquitectura
 
-Nunca commitees `email.json`, `gmail_token.json` ni `client_secret*.json`.
+```
+.
+├── gui_main.py              Punto de entrada de la interfaz gráfica
+├── __main__.py              Punto de entrada del menú de consola
+├── facturae.spec            Configuración de PyInstaller
+├── main/
+│   ├── interfaz/            Ventana (CustomTkinter) y servicios sin dependencia de UI
+│   ├── bussines/            Núcleo: descarga, extracción, Excel, rutas y Reporter
+│   ├── printer/             Menú de consola y administración de tenants
+│   ├── objects/             Configuración de correo, OAuth2 y plantillas
+│   ├── plantilla/           Cabeceras y constantes del Excel
+│   ├── settings.py          Carpetas de datos y carpeta de salida
+│   └── config.py            Variables de entorno y configuración
+├── tests/                   Pruebas automáticas
+└── .github/workflows/       Build de instaladores y publicación de releases
+```
 
-## Contribución
+El núcleo (`main/bussines/`) **no usa `input()` ni `print()`**: recibe parámetros, devuelve resultados (`ResultadoDescarga`, `ResultadoProceso`) y reporta eventos a un `Reporter`. La consola usa `ConsoleReporter` y la ventana usa un reporter propio; así ambas interfaces comparten la misma lógica.
 
-1. Fork del repositorio
-2. Crear una rama (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abrir Pull Request
+## Solución de problemas
+
+| Síntoma | Causa y solución |
+|---|---|
+| `ModuleNotFoundError: No module named 'dotenv'` (u otro módulo) | Se ejecuta con un Python distinto al del entorno virtual. Activa `.venv` o ejecuta `.venv/bin/python …` |
+| `No module named '_tkinter'` | Falta Tk. macOS: `brew install python-tk@3.12` (según tu versión). Windows: reinstala Python marcando *tcl/tk* |
+| macOS: «la app está dañada» | Ejecuta `xattr -cr /Applications/FacturaeOptimus.app` |
+| Windows: SmartScreen bloquea el `.exe` | *Más información* → *Ejecutar de todas formas* |
+| «El tenant … no tiene el correo configurado» | Configúralo en la pestaña **Correo** |
+| Gmail rechaza el acceso | Con OAuth2, vuelve a pulsar **Guardar / Vincular**; con contraseña, usa una **contraseña de aplicación**, no la de la cuenta |
+| El workflow no crea la release | Revisa los permisos de Actions (*Read and write*) y el log del paso que falló |
+
+## Seguridad
+
+- Las credenciales (`email.json`, `gmail_token.json`, `client_secret*.json`) **nunca** deben commitearse: viven fuera del repositorio y están en `.gitignore`.
+- La aplicación no imprime contraseñas ni tokens en consola ni en logs.
+- Las facturas pueden contener datos de terceros: no subas XML ni PDF reales al repositorio.
+
+## Contribuir
+
+1. Crea una rama desde `master`: `feature/<descripción>`, `fix/<descripción>` o `hotfix/<descripción>`.
+2. Mantén los cambios pequeños (idealmente menos de 400 líneas) y con pruebas.
+3. Título de commit y PR en el formato `tipo: descripción corta` (máximo 72 caracteres). Tipos válidos: `feat`, `fix`, `hotfix`, `docs`, `test`, `refactor`.
+4. Verifica `python -m pytest tests -q` antes de abrir el Pull Request.
 
 ## Licencia
 
