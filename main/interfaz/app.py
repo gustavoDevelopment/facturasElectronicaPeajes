@@ -16,31 +16,35 @@ MESES = [str(m) for m in range(1, 13)]
 
 
 class ReporterGui(Reporter):
-    """Envía los eventos del hilo de trabajo a la ventana mediante una cola."""
+    """Envía los eventos de un mes a la ventana mediante una cola (con su etiqueta)."""
 
-    def __init__(self, cola: queue.Queue):
+    def __init__(self, cola: queue.Queue, clave: str = ""):
         self.cola = cola
+        self.clave = clave
+
+    def _linea(self, mensaje):
+        return f"[{self.clave}] {mensaje}" if self.clave else mensaje
 
     def info(self, mensaje):
-        self.cola.put(("log", mensaje))
+        self.cola.put(("log", self._linea(mensaje)))
 
     def warn(self, mensaje):
-        self.cola.put(("log", f"⚠️ {mensaje}"))
+        self.cola.put(("log", self._linea(f"⚠️ {mensaje}")))
 
     def error(self, mensaje):
-        self.cola.put(("log", f"❌ {mensaje}"))
+        self.cola.put(("log", self._linea(f"❌ {mensaje}")))
 
     def progress(self, actual, total, mensaje=""):
-        self.cola.put(("progress", actual / total if total else 0))
+        self.cola.put(("progress", (self.clave, actual / total if total else 0)))
         if mensaje:
-            self.cola.put(("log", f"[{actual}/{total}] {mensaje}"))
+            self.cola.put(("log", self._linea(f"[{actual}/{total}] {mensaje}")))
 
 
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Facturae Optimus")
-        self.geometry("760x640")
+        self.geometry("860x780")
         self.cola = queue.Queue()
         self.ultimo_excel = ""
 
@@ -56,46 +60,102 @@ class App(ctk.CTk):
         tab.columnconfigure(1, weight=1)
         mes, anio = services.mes_anterior()
 
-        ctk.CTkLabel(tab, text="Tenant").grid(row=0, column=0, sticky="w", pady=6)
+        ctk.CTkLabel(tab, text="Tenant").grid(row=0, column=0, sticky="w", pady=4)
         self.tenant = ctk.CTkComboBox(tab, values=services.listar_tenants() or [""])
-        self.tenant.grid(row=0, column=1, sticky="ew", padx=8)
+        self.tenant.grid(row=0, column=1, columnspan=2, sticky="ew", padx=8)
 
-        ctk.CTkLabel(tab, text="Mes / Año").grid(row=1, column=0, sticky="w", pady=6)
+        self.desde_mes, self.desde_anio = self._selector_mes(tab, 1, "Desde (mes / año)", mes, anio)
+        self.hasta_mes, self.hasta_anio = self._selector_mes(tab, 2, "Hasta (mes / año)", mes, anio)
+
+        ctk.CTkLabel(tab, text="Procesos simultáneos").grid(row=3, column=0, sticky="w", pady=4)
         fila = ctk.CTkFrame(tab, fg_color="transparent")
-        fila.grid(row=1, column=1, sticky="w", padx=8)
-        self.mes = ctk.CTkComboBox(fila, values=MESES, width=70)
-        self.mes.set(str(mes))
-        self.mes.pack(side="left")
-        self.anio = ctk.CTkEntry(fila, width=80)
-        self.anio.insert(0, str(anio))
-        self.anio.pack(side="left", padx=8)
+        fila.grid(row=3, column=1, columnspan=2, sticky="w", padx=8)
+        self.simultaneos = ctk.CTkComboBox(fila, values=["1", "2", "3", "4"], width=70)
+        self.simultaneos.set("3")
+        self.simultaneos.pack(side="left")
+        self.reverificar = ctk.CTkCheckBox(fila, text="Verificar y descargar faltantes aunque ya haya ZIPs")
+        self.reverificar.select()
+        self.reverificar.pack(side="left", padx=16)
 
-        ctk.CTkLabel(tab, text="Carpeta de salida").grid(row=2, column=0, sticky="w", pady=6)
+        ctk.CTkLabel(tab, text="Carpeta de salida").grid(row=4, column=0, sticky="w", pady=4)
         self.salida = ctk.CTkEntry(tab)
         self.salida.insert(0, str(get_output_dir()))
-        self.salida.grid(row=2, column=1, sticky="ew", padx=8)
-        ctk.CTkButton(tab, text="Elegir…", width=80, command=self._elegir_salida).grid(row=2, column=2)
-
-        self.reverificar = ctk.CTkCheckBox(tab, text="Verificar y descargar faltantes aunque ya haya ZIPs")
-        self.reverificar.select()
-        self.reverificar.grid(row=3, column=1, sticky="w", padx=8, pady=6)
+        self.salida.grid(row=4, column=1, sticky="ew", padx=8)
+        ctk.CTkButton(tab, text="Elegir…", width=80, command=self._elegir_salida).grid(row=4, column=2)
 
         self.boton = ctk.CTkButton(tab, text="Descargar y procesar", command=self._procesar)
-        self.boton.grid(row=4, column=1, sticky="w", padx=8, pady=8)
+        self.boton.grid(row=5, column=1, sticky="w", padx=8, pady=8)
 
         self.barra = ctk.CTkProgressBar(tab)
         self.barra.set(0)
-        self.barra.grid(row=5, column=0, columnspan=3, sticky="ew", pady=4)
+        self.barra.grid(row=6, column=0, columnspan=3, sticky="ew", pady=2)
 
-        self.log = ctk.CTkTextbox(tab, height=260)
-        self.log.grid(row=6, column=0, columnspan=3, sticky="nsew", pady=4)
-        tab.rowconfigure(6, weight=1)
+        # Panel de resumen: una fila por mes
+        self.panel = ctk.CTkScrollableFrame(tab, height=130, label_text="Resumen")
+        self.panel.grid(row=7, column=0, columnspan=3, sticky="ew", pady=6)
+        self.filas = {}
+        self._encabezado_panel()
+        self.total = ctk.CTkLabel(tab, text="", anchor="w")
+        self.total.grid(row=8, column=0, columnspan=3, sticky="w")
+
+        self.log = ctk.CTkTextbox(tab, height=170)
+        self.log.grid(row=9, column=0, columnspan=3, sticky="nsew", pady=4)
+        tab.rowconfigure(9, weight=1)
 
         botones = ctk.CTkFrame(tab, fg_color="transparent")
-        botones.grid(row=7, column=0, columnspan=3, sticky="w")
-        ctk.CTkButton(botones, text="Abrir Excel", command=lambda: self._abrir(self.ultimo_excel)).pack(side="left")
+        botones.grid(row=10, column=0, columnspan=3, sticky="w")
+        ctk.CTkButton(botones, text="Abrir último Excel", command=lambda: self._abrir(self.ultimo_excel)).pack(side="left")
         ctk.CTkButton(botones, text="Abrir carpeta de salida",
                       command=lambda: self._abrir(self.salida.get())).pack(side="left", padx=8)
+
+    def _selector_mes(self, tab, fila, etiqueta, mes, anio):
+        ctk.CTkLabel(tab, text=etiqueta).grid(row=fila, column=0, sticky="w", pady=4)
+        marco = ctk.CTkFrame(tab, fg_color="transparent")
+        marco.grid(row=fila, column=1, columnspan=2, sticky="w", padx=8)
+        combo = ctk.CTkComboBox(marco, values=MESES, width=70)
+        combo.set(str(mes))
+        combo.pack(side="left")
+        entrada = ctk.CTkEntry(marco, width=80)
+        entrada.insert(0, str(anio))
+        entrada.pack(side="left", padx=8)
+        return combo, entrada
+
+    COLUMNAS = ("Mes", "Estado", "Correos", "ZIPs", "Facturas", "Excel")
+
+    def _encabezado_panel(self):
+        for c, texto in enumerate(self.COLUMNAS):
+            ctk.CTkLabel(self.panel, text=texto, font=ctk.CTkFont(weight="bold")).grid(row=0, column=c, padx=8, sticky="w")
+
+    def _limpiar_panel(self):
+        for w in self.panel.winfo_children():
+            w.destroy()
+        self.filas = {}
+        self._encabezado_panel()
+        self.total.configure(text="")
+
+    def _agregar_fila(self, clave):
+        r = len(self.filas) + 1
+        etiquetas = {}
+        for c, nombre in enumerate(self.COLUMNAS[:-1]):
+            etiquetas[nombre] = ctk.CTkLabel(self.panel, text=clave if nombre == "Mes" else ("En cola" if nombre == "Estado" else "—"))
+            etiquetas[nombre].grid(row=r, column=c, padx=8, sticky="w")
+        etiquetas["Excel"] = ctk.CTkButton(self.panel, text="Abrir", width=60, state="disabled")
+        etiquetas["Excel"].grid(row=r, column=5, padx=8)
+        self.filas[clave] = etiquetas
+
+    def _actualizar_fila(self, res):
+        fila = self.filas.get(f"{res.mes:02d}/{res.anio}")
+        if not fila:
+            return
+        if res.ok:
+            r = res.resultado
+            fila["Estado"].configure(text="✅ Listo", text_color="#2E9E5B")
+            fila["Correos"].configure(text=str(r.correos))
+            fila["ZIPs"].configure(text=str(r.zips))
+            fila["Facturas"].configure(text=str(r.facturas))
+            fila["Excel"].configure(state="normal", command=lambda x=r.excel: self._abrir(x))
+        else:
+            fila["Estado"].configure(text="❌ Error", text_color="#D64545")
 
     def _elegir_salida(self):
         carpeta = filedialog.askdirectory(initialdir=self.salida.get())
@@ -105,9 +165,13 @@ class App(ctk.CTk):
 
     def _procesar(self):
         try:
-            tenant, mes, anio = self.tenant.get().strip(), int(self.mes.get()), int(self.anio.get())
-        except ValueError:
-            return messagebox.showerror("Datos inválidos", "El mes y el año deben ser números.")
+            tenant = self.tenant.get().strip()
+            meses = services.rango_meses(
+                (int(self.desde_mes.get()), int(self.desde_anio.get())),
+                (int(self.hasta_mes.get()), int(self.hasta_anio.get())))
+            simultaneos = int(self.simultaneos.get())
+        except ValueError as e:
+            return messagebox.showerror("Datos inválidos", str(e) if "mes" in str(e).lower() else "Mes, año y procesos deben ser números.")
         if not tenant:
             return messagebox.showerror("Falta el tenant", "Elige o escribe el tenant.")
         set_output_dir(self.salida.get())
@@ -115,11 +179,21 @@ class App(ctk.CTk):
         self.boton.configure(state="disabled")
         self.barra.set(0)
         self.log.delete("1.0", "end")
+        self._limpiar_panel()
+        self.fracciones = {f"{m:02d}/{a}": 0.0 for m, a in meses}
+        self.resultados = []
+        for clave in self.fracciones:
+            self._agregar_fila(clave)
+
+        def crear_reporter(clave):
+            self.cola.put(("inicio", clave))
+            return ReporterGui(self.cola, clave)
 
         def trabajo():
             try:
-                res = services.ejecutar_proceso(tenant, mes, anio, ReporterGui(self.cola), reverificar)
-                self.cola.put(("fin", res))
+                services.ejecutar_varios(tenant, meses, crear_reporter, reverificar, simultaneos,
+                                         al_terminar=lambda r: self.cola.put(("mes_fin", r)))
+                self.cola.put(("todo_fin", None))
             except Exception as e:  # se muestra en la ventana, no se pierde en la consola
                 self.cola.put(("error", str(e)))
 
@@ -132,13 +206,31 @@ class App(ctk.CTk):
                 if tipo == "log":
                     self.log.insert("end", dato + "\n")
                     self.log.see("end")
+                elif tipo == "inicio":
+                    if dato in self.filas:
+                        self.filas[dato]["Estado"].configure(text="⏳ En curso")
                 elif tipo == "progress":
-                    self.barra.set(dato)
-                elif tipo == "fin":
-                    self.ultimo_excel = dato.excel
-                    self.barra.set(1)
+                    clave, fraccion = dato
+                    self.fracciones[clave] = fraccion
+                    self.barra.set(sum(self.fracciones.values()) / len(self.fracciones))
+                elif tipo == "mes_fin":
+                    self.resultados.append(dato)
+                    self.fracciones[f"{dato.mes:02d}/{dato.anio}"] = 1.0
+                    self.barra.set(sum(self.fracciones.values()) / len(self.fracciones))
+                    self._actualizar_fila(dato)
+                    if dato.ok:
+                        self.ultimo_excel = dato.resultado.excel
+                    else:
+                        self.log.insert("end", f"[{dato.mes:02d}/{dato.anio}] ❌ {dato.error}\n")
+                elif tipo == "todo_fin":
                     self.boton.configure(state="normal")
-                    self.log.insert("end", f"\n✅ Listo: {dato.facturas} facturas en {dato.zips} ZIP.\n{dato.excel}\n")
+                    ok = [r for r in self.resultados if r.ok]
+                    fallidos = [r for r in self.resultados if not r.ok]
+                    facturas = sum(r.resultado.facturas for r in ok)
+                    self.total.configure(text=f"Total: {facturas} facturas en {len(ok)} de {len(self.resultados)} meses")
+                    if fallidos:
+                        detalle = "\n".join(f"{r.mes:02d}/{r.anio}: {r.error}" for r in fallidos)
+                        messagebox.showerror("Algunos meses fallaron", detalle)
                 elif tipo == "estado":
                     self.c_estado.configure(text=dato)
                     self.tenant.configure(values=services.listar_tenants() or [""])
