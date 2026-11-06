@@ -6,7 +6,6 @@ from plantilla.constants import Constants
 import re
 
 def extraer_datos_factura(xml_file):
-    print("Source xml read: ",xml_file)
     # 1. Leer el XML principal (AttachedDocument)
     with open(xml_file, "rb") as f:
         tree = etree.parse(f)

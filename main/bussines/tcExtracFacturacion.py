@@ -5,7 +5,9 @@ from lxml import etree
 from bussines.tcCausar import agregar_filas_al_excel
 from bussines.tcCausar import crear_archivo_excel_con_cabecera
 from bussines.tcProcesFacturacion import extraer_datos_factura
-from plantilla.constants import Constants
+from dataclasses import dataclass
+from bussines.paths import tenant_work_dir, plantilla_path, resolve_base_dir
+from bussines.reporter import Reporter
 from objects.fo_obj_plantilla import do_on_get_columns
 
 # Namespaces UBL
@@ -14,94 +16,71 @@ ns = {
     'cac': 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2'
 }
 
-def descomprimir_y_procesar_zip(subFolder,zipPath,zipName,processDir,closedDir):  
-    print(f"descomprimir_y_procesar_zip: {zipPath} | subFolder: {subFolder} | zipName: {zipName}")
-    carpeta_destino = os.path.join(processDir,subFolder, zipName)
+@dataclass
+class ResultadoProceso:
+    zips: int = 0
+    facturas: int = 0
+    excel: str = ""
+
+
+def descomprimir_y_procesar_zip(subFolder, zipPath, zipName, processDir, closedDir, reporter=None):
+    reporter = reporter or Reporter()
+    carpeta_destino = os.path.join(processDir, subFolder, zipName)
     os.makedirs(carpeta_destino, exist_ok=True)
-    print(f"📁 Carpeta destino para descomprimir: {carpeta_destino}")
 
-    # Extraer todo el contenido
     with zipfile.ZipFile(zipPath, "r") as zip_ref:
-        nombres_archivos = zip_ref.namelist()
-        archivos_xml = [nombre for nombre in nombres_archivos if nombre.lower().endswith('.xml')]
-        
-        print("🧾 Archivos XML encontrados en el ZIP:")
-        for xml in archivos_xml:
-            print(f" - {xml}")
-            
+        archivos_xml = [n for n in zip_ref.namelist() if n.lower().endswith('.xml')]
         zip_ref.extractall(carpeta_destino)
-
-    print(f"📁 ZIP descomprimido en: {carpeta_destino}")
+    reporter.info(f"📁 {zipName}: {len(archivos_xml)} XML descomprimidos en {carpeta_destino}")
 
     # Mover el ZIP a la carpeta 'closed'
     os.makedirs(closedDir, exist_ok=True)
-    destino_zip = os.path.join(closedDir, os.path.basename(zipPath))
-    shutil.move(zipPath, destino_zip)
+    shutil.move(zipPath, os.path.join(closedDir, os.path.basename(zipPath)))
+    return carpeta_destino, archivos_xml
 
-    print(f"📦 ZIP movido a: {destino_zip}\n")
-    return carpeta_destino,archivos_xml;
 
-def do_on_create_voucher(factura_id, texto_factura,voucherDir):
-    
-    # Crear la carpeta 'voucherPeaje' si no existe
-    if not os.path.exists(voucherDir):
-        os.makedirs(voucherDir)
-    
-    # Crear el nombre del archivo con el factura_id
-    file_name = f"{factura_id}.txt"
-    file_path = os.path.join(voucherDir, file_name)
-    
-    # Guardar el texto de la factura en el archivo .txt
+def do_on_create_voucher(factura_id, texto_factura, voucherDir, reporter=None):
+    reporter = reporter or Reporter()
+    os.makedirs(voucherDir, exist_ok=True)
+    file_path = os.path.join(voucherDir, f"{factura_id}.txt")
     with open(file_path, "w", encoding="utf-8") as file:
         file.write(texto_factura)
-    
-    print(f"Factura guardada en: {file_path}")
+    reporter.info(f"Factura guardada en: {file_path}")
 
-# ---------- Ejecutar ----------
-def do_on_start_extract_facturacion(subFolder,tenant_id):
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    base_dir = os.path.dirname(os.path.dirname(base_dir))
-    base_facturas = os.path.join(base_dir,Constants.APLICATION_NAME.value[0],tenant_id, "zip",subFolder)
-    voucher_dir = os.path.join(base_dir,Constants.APLICATION_NAME.value[0],tenant_id, "voucher",subFolder)
-    process_dir = os.path.join(base_dir,Constants.APLICATION_NAME.value[0],tenant_id, "openZip",subFolder)
-    closed_dir = os.path.join(base_dir,Constants.APLICATION_NAME.value[0],tenant_id, "closedZip",subFolder)
-    print("📂 Directorio Base:", base_dir)
-    print("📂 Directorio base_facturas:", base_facturas)
-    print("📂 Directorio voucher_dir:", voucher_dir)
-    print("📂 Directorio process_dir:", process_dir)
-    print("📂 Directorio closed_dir:", closed_dir)
-    
-    # Crear carpetas si no existen
-    os.makedirs(voucher_dir, exist_ok=True)
-    os.makedirs(process_dir, exist_ok=True)
-    os.makedirs(closed_dir, exist_ok=True)
 
-    print("🔎 Buscando zip facturas in path...",base_facturas)
+def do_on_start_extract_facturacion(subFolder, tenant_id, reporter=None, base_dir=None):
+    reporter = reporter or Reporter()
+    trabajo = tenant_work_dir(tenant_id, base_dir)
+    base_facturas = str(trabajo / "zip" / subFolder)
+    voucher_dir = str(trabajo / "voucher" / subFolder)
+    process_dir = str(trabajo / "openZip" / subFolder)
+    closed_dir = str(trabajo / "closedZip" / subFolder)
+
+    for carpeta in (voucher_dir, process_dir, closed_dir):
+        os.makedirs(carpeta, exist_ok=True)
+
+    reporter.info(f"🔎 Buscando ZIP de facturas en {base_facturas}")
+    zips = sorted(f for f in os.listdir(base_facturas) if f.lower().endswith(".zip"))
+    pendientes = [f for f in os.listdir(base_facturas) if f.endswith(".crdownload")]
+    for f in pendientes:
+        reporter.warn(f"Descarga incompleta, se omite: {f}")
+
     lista_peajes = []
-    for filename in os.listdir(base_facturas):
+    for n, filename in enumerate(zips, start=1):
+        reporter.progress(n, len(zips), f"ZIP: {filename}")
         path = os.path.join(base_facturas, filename)
-        if filename.endswith(".zip") and not filename.endswith(".crdownload"):
-            if filename.lower().endswith(".zip"):
-                print(f"📦 ZIP detectado: {filename}")
-                pathFileFac,archivos_xml= descomprimir_y_procesar_zip(subFolder,path,filename,process_dir,closed_dir)
-                for fileNameXml in archivos_xml:
-                    ruta_completa = os.path.join(pathFileFac, fileNameXml)
-                    factura_id, texto_factura = extraer_datos_factura(ruta_completa)
-                    do_on_create_voucher(str(factura_id),str(texto_factura),voucher_dir)
-                    lista_peajes.append(texto_factura)
-        else :
-            print(f"📦 ZIP detectado in download not process {filename}")
-            
-    print("🔎 Generando plantilla...")
-    plantilla_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        "build",
-        "tenant",
-        tenant_id,
-        "plantilla.json"
-    )
-    print("🔎 Load cabceras file: ",plantilla_file)
-    cabeceras=do_on_get_columns(plantilla_file)
-    path_plantilla=crear_archivo_excel_con_cabecera(base_dir,subFolder,tenant_id,cabeceras)
-    print("🔎 Escribiendo en plantilla file: ",path_plantilla)
-    agregar_filas_al_excel(path_plantilla,lista_peajes)
-    print("\n✅ Proceso completado.")
+        pathFileFac, archivos_xml = descomprimir_y_procesar_zip(
+            subFolder, path, filename, process_dir, closed_dir, reporter)
+        for fileNameXml in archivos_xml:
+            ruta_completa = os.path.join(pathFileFac, fileNameXml)
+            factura_id, texto_factura = extraer_datos_factura(ruta_completa)
+            do_on_create_voucher(str(factura_id), str(texto_factura), voucher_dir, reporter)
+            lista_peajes.append(texto_factura)
+
+    reporter.info("🔎 Generando plantilla...")
+    cabeceras = do_on_get_columns(str(plantilla_path(tenant_id)))
+    path_plantilla = crear_archivo_excel_con_cabecera(
+        str(resolve_base_dir(base_dir)), subFolder, tenant_id, cabeceras, reporter)
+    agregar_filas_al_excel(path_plantilla, lista_peajes, reporter)
+    reporter.info("✅ Proceso completado.")
+    return ResultadoProceso(len(zips), len(lista_peajes), path_plantilla)
