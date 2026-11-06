@@ -56,9 +56,15 @@ un `Reporter` (`bussines/reporter.py`). El menú de consola usa `ConsoleReporter
 hace las preguntas al usuario; otra interfaz (por ejemplo gráfica) solo debe
 heredar de `Reporter` y llamar a las mismas funciones.
 
-Los datos de trabajo (ZIPs, vouchers, Excel de salida) se guardan en
-`Facturae_Optimus/<tenant>/` dentro de `DATA_DIR` (por defecto, dos niveles sobre
-`main/`). Se puede cambiar con la variable de entorno `DATA_DIR`.
+Los datos de trabajo (ZIPs, vouchers, Excel de salida) se guardan en una **carpeta
+de salida global**, con una subcarpeta por tenant (`<salida>/<tenant>/{zip,voucher,output,...}`).
+Se define con `OUTPUT_DIR` o `settings.json` (`set_output_dir`); si no, se usa
+`~/Documents/Facturae_Optimus`.
+
+Tenants, plantillas, logs y `settings.json` viven en la carpeta de datos del usuario
+(`~/Library/Application Support/FacturaeOptimus` en macOS, `%APPDATA%\FacturaeOptimus`
+en Windows), configurable con `FACTURAE_HOME`. La plantilla incluida en el repositorio
+se copia ahí la primera vez que se usa un tenant.
 
 ## Uso
 

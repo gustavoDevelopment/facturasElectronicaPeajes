@@ -84,11 +84,11 @@ def test_no_conecta_si_ya_hay_zips_y_no_se_verifica(tmp_path, monkeypatch):
 
 
 def test_extraccion_genera_excel_con_filas(tmp_path):
-    zips = tmp_path / "Facturae_Optimus" / "test" / "zip" / "3_2025"
+    zips = tmp_path / "test" / "zip" / "3_2025"
     zips.mkdir(parents=True)
     _zip_con_xml(zips / "facturas.zip")
 
-    res = do_on_start_extract_facturacion("3_2025", "test", Reporter(), base_dir=tmp_path)
+    res = do_on_start_extract_facturacion("3_2025", "test", Reporter(), output_dir=tmp_path)
 
     assert (res.zips, res.facturas) == (1, 1)
     assert not (zips / "facturas.zip").exists()  # movido a closedZip

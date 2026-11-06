@@ -143,9 +143,9 @@ def conectar_y_descargar(mes, annio, folderDownload, folderProcess, emailConfig,
 
 
 def do_on_start(subFolder, month, year, emailConfig, tenant_id,
-                reporter=None, verificar=True, base_dir=None):
+                reporter=None, verificar=True, output_dir=None):
     reporter = reporter or Reporter()
-    trabajo = tenant_work_dir(tenant_id, base_dir)
+    trabajo = tenant_work_dir(tenant_id, output_dir)
     downloadZIPS = str(trabajo / "zip" / subFolder)
     processZIPS = str(trabajo / "closedZip" / subFolder)
     reporter.info(f"Conectando con {emailConfig.get('user')} ({emailConfig.get('auth_type', 'password')})")

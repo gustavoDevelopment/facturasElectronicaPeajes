@@ -6,7 +6,7 @@ from bussines.tcCausar import agregar_filas_al_excel
 from bussines.tcCausar import crear_archivo_excel_con_cabecera
 from bussines.tcProcesFacturacion import extraer_datos_factura
 from dataclasses import dataclass
-from bussines.paths import tenant_work_dir, plantilla_path, resolve_base_dir
+from bussines.paths import tenant_work_dir, plantilla_path
 from bussines.reporter import Reporter
 from objects.fo_obj_plantilla import do_on_get_columns
 
@@ -48,9 +48,9 @@ def do_on_create_voucher(factura_id, texto_factura, voucherDir, reporter=None):
     reporter.info(f"Factura guardada en: {file_path}")
 
 
-def do_on_start_extract_facturacion(subFolder, tenant_id, reporter=None, base_dir=None):
+def do_on_start_extract_facturacion(subFolder, tenant_id, reporter=None, output_dir=None):
     reporter = reporter or Reporter()
-    trabajo = tenant_work_dir(tenant_id, base_dir)
+    trabajo = tenant_work_dir(tenant_id, output_dir)
     base_facturas = str(trabajo / "zip" / subFolder)
     voucher_dir = str(trabajo / "voucher" / subFolder)
     process_dir = str(trabajo / "openZip" / subFolder)
@@ -80,7 +80,7 @@ def do_on_start_extract_facturacion(subFolder, tenant_id, reporter=None, base_di
     reporter.info("🔎 Generando plantilla...")
     cabeceras = do_on_get_columns(str(plantilla_path(tenant_id)))
     path_plantilla = crear_archivo_excel_con_cabecera(
-        str(resolve_base_dir(base_dir)), subFolder, tenant_id, cabeceras, reporter)
+        str(trabajo), subFolder, cabeceras, reporter)
     agregar_filas_al_excel(path_plantilla, lista_peajes, reporter)
     reporter.info("✅ Proceso completado.")
     return ResultadoProceso(len(zips), len(lista_peajes), path_plantilla)
