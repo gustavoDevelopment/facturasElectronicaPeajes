@@ -51,13 +51,18 @@ Vincular"; se abre el navegador, inicia sesión y acepta los permisos.
   Al ver "Guardado en …" el correo queda listo; el tenant aparece en "Procesar".
 
 4) PROCESAR UN MES (pestaña "Procesar")
-  • Elige el tenant y el rango "Desde / Hasta" (por defecto, el mes anterior). Para \
-varios meses pon un rango; se procesan a la vez ("Procesos simultáneos", de 1 a 4).
+  • Elige el tenant y el mes y año (por defecto, el mes anterior).
   • Elige la carpeta de salida con "Elegir…" (una sola para todos los tenants; cada \
 tenant usa una subcarpeta con su nombre).
-  • Pulsa "Descargar y procesar". El panel Resumen muestra, por mes, el estado, los \
-correos, los ZIP y las facturas, con un botón para abrir su Excel. Un mes con error no \
-detiene a los demás.
+  • Pulsa "Lanzar proceso". Puedes lanzar otro mes (u otra empresa) mientras el anterior \
+sigue corriendo; hasta 4 a la vez.
+  • El panel "Procesos" muestra una fila por proceso con su estado, el porcentaje de avance \
+(sobre 100%), los correos, los ZIP y las facturas.
+  • "Log" muestra el registro de ese proceso; cada proceso tiene el suyo.
+  • "Detener" lo para en el siguiente punto seguro. No se pierde nada: los ZIP solo se \
+mueven a "closedZip" cuando el Excel ya está generado, así que al relanzar ese mes se \
+procesa completo.
+  • "Excel" abre el archivo generado. Un proceso con error o detenido no afecta a los demás.
 
 Esto se configura una sola vez por tenant y por equipo.
 

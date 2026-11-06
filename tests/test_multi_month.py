@@ -33,7 +33,7 @@ class Recolector:
 def test_se_puede_lanzar_otro_mes_mientras_el_primero_corre(monkeypatch):
     primero_corriendo, soltar = threading.Event(), threading.Event()
 
-    def falso(tenant, mes, anio, reporter, reverificar):
+    def falso(tenant, mes, anio, reporter, reverificar, cancelar=None):
         if mes == 1:
             primero_corriendo.set()
             assert soltar.wait(5)       # el mes 1 sigue "corriendo"
@@ -82,7 +82,7 @@ def test_limite_de_procesos_simultaneos(monkeypatch):
 
 
 def test_un_proceso_con_error_no_afecta_a_otro_y_se_puede_relanzar(monkeypatch):
-    def falso(tenant, mes, anio, reporter, reverificar):
+    def falso(tenant, mes, anio, reporter, reverificar, cancelar=None):
         if mes == 2:
             raise RuntimeError("sin correos")
         return ResumenProceso(facturas=10)
@@ -99,3 +99,28 @@ def test_un_proceso_con_error_no_afecta_a_otro_y_se_puede_relanzar(monkeypatch):
     assert por_mes[2].tenant == "t"
     lanzador.lanzar("t", 2, 2026, None, fin)       # tras terminar, el mismo mes se puede relanzar
     fin.esperar(3)
+
+
+def test_detener_un_proceso_en_curso(monkeypatch):
+    from bussines.cancelacion import comprobar
+
+    en_marcha = threading.Event()
+
+    def falso(tenant, mes, anio, reporter, reverificar, cancelar=None):
+        en_marcha.set()
+        for _ in range(500):            # el núcleo revisa la señal en puntos seguros
+            comprobar(cancelar)
+            threading.Event().wait(0.01)
+        return ResumenProceso()
+
+    monkeypatch.setattr(services, "ejecutar_proceso", falso)
+    lanzador, fin = Lanzador(), Recolector()
+
+    proceso = lanzador.lanzar("t", 1, 2026, None, fin)
+    assert en_marcha.wait(5)
+    proceso.detener()
+    fin.esperar(1)
+
+    resultado = fin.resultados[0]
+    assert resultado.cancelado and not resultado.ok and "detenido" in resultado.error
+    assert lanzador.en_curso == 0

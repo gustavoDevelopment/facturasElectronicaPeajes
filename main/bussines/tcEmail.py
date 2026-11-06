@@ -7,6 +7,7 @@ import base64
 import threading
 import calendar
 from dataclasses import dataclass
+from bussines.cancelacion import comprobar
 from bussines.paths import tenant_work_dir
 from bussines.reporter import Reporter
 from objects.fo_gmail_oauth import obtener_credenciales, generar_auth_string
@@ -71,7 +72,7 @@ def contar_zips(carpeta):
 
 
 def conectar_y_descargar(mes, annio, folderDownload, folderProcess, emailConfig,
-                         reporter=None, verificar=True):
+                         reporter=None, verificar=True, cancelar=None):
     """
     Descarga los ZIP adjuntos de las facturas del mes indicado.
 
@@ -104,6 +105,7 @@ def conectar_y_descargar(mes, annio, folderDownload, folderProcess, emailConfig,
         descargados = 0
 
         for n, num in enumerate(ids, start=1):
+            comprobar(cancelar)  # entre correos: nunca queda un ZIP a medio escribir
             estado, datos = mail.fetch(num, "(RFC822)")
             if estado != "OK":
                 continue
@@ -112,7 +114,7 @@ def conectar_y_descargar(mes, annio, folderDownload, folderProcess, emailConfig,
             asunto, codificacion = decode_header(mensaje["Subject"])[0]
             if isinstance(asunto, bytes):
                 asunto = asunto.decode(codificacion or "utf-8")
-            reporter.progress(n, total_correos, f"Procesando correo: {asunto}")
+            reporter.progress(n, total_correos, f"Procesando correo: {asunto}", "descarga")
 
             for parte in mensaje.walk():
                 if parte.get_content_maintype() == "multipart":
@@ -149,7 +151,7 @@ def conectar_y_descargar(mes, annio, folderDownload, folderProcess, emailConfig,
 
 
 def do_on_start(subFolder, month, year, emailConfig, tenant_id,
-                reporter=None, verificar=True, output_dir=None):
+                reporter=None, verificar=True, output_dir=None, cancelar=None):
     reporter = reporter or Reporter()
     trabajo = tenant_work_dir(tenant_id, output_dir)
     downloadZIPS = str(trabajo / "zip" / subFolder)
@@ -158,4 +160,4 @@ def do_on_start(subFolder, month, year, emailConfig, tenant_id,
     reporter.info(f"Carpeta de descarga: {downloadZIPS}")
     os.makedirs(downloadZIPS, exist_ok=True)
     return conectar_y_descargar(month, year, downloadZIPS, processZIPS, emailConfig,
-                                reporter, verificar)
+                                reporter, verificar, cancelar)

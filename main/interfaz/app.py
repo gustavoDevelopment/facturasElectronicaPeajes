@@ -9,7 +9,7 @@ from tkinter import filedialog, messagebox
 
 import customtkinter as ctk
 
-from bussines.reporter import Reporter
+from bussines.reporter import Reporter, fraccion_global
 from interfaz import empresas, services
 from interfaz.ayuda import AYUDA, ENLACES
 from settings import get_output_dir, ruta_recurso, set_output_dir
@@ -18,29 +18,28 @@ MESES = [str(m) for m in range(1, 13)]
 
 
 class ReporterGui(Reporter):
-    """Envía los eventos de un proceso a la ventana mediante una cola (con su etiqueta)."""
+    """Envía los eventos de un proceso a la ventana mediante una cola."""
 
-    def __init__(self, cola: queue.Queue, id_proceso: int, etiqueta: str):
+    def __init__(self, cola: queue.Queue, id_proceso: int):
         self.cola = cola
         self.id = id_proceso
-        self.etiqueta = etiqueta
 
-    def _linea(self, mensaje):
-        return f"[{self.etiqueta}] {mensaje}"
+    def _log(self, linea):
+        self.cola.put(("log", (self.id, linea)))
 
     def info(self, mensaje):
-        self.cola.put(("log", self._linea(mensaje)))
+        self._log(mensaje)
 
     def warn(self, mensaje):
-        self.cola.put(("log", self._linea(f"⚠️ {mensaje}")))
+        self._log(f"⚠️ {mensaje}")
 
     def error(self, mensaje):
-        self.cola.put(("log", self._linea(f"❌ {mensaje}")))
+        self._log(f"❌ {mensaje}")
 
-    def progress(self, actual, total, mensaje=""):
-        self.cola.put(("progress", (self.id, actual / total if total else 0)))
+    def progress(self, actual, total, mensaje="", fase=""):
+        self.cola.put(("progress", (self.id, fraccion_global(fase, actual, total))))
         if mensaje:
-            self.cola.put(("log", self._linea(f"[{actual}/{total}] {mensaje}")))
+            self._log(f"[{actual}/{total}] {mensaje}")
 
 
 class App(ctk.CTk):
@@ -73,17 +72,20 @@ class App(ctk.CTk):
             pass
 
     # ---------- Procesar ----------
-    COLUMNAS = ("Tenant", "Mes", "Estado", "Avance", "Correos", "ZIPs", "Facturas", "Excel")
+    COLUMNAS = ("Tenant", "Mes", "Estado", "Avance", "Correos", "ZIPs", "Facturas", "Acciones")
 
     def _tab_procesar(self, tab):
         tab.columnconfigure(1, weight=1)
         mes, anio = services.mes_anterior()
         self.lanzador = services.Lanzador()
-        self.filas = {}
+        self.filas = {}          # id -> widgets de la fila
+        self.procesos = {}       # id -> Proceso (para detenerlo)
+        self.logs = {}           # id -> líneas de log de ese proceso
+        self.log_id = None       # proceso cuyo log se está viendo
         self.n_procesos = 0
 
         ctk.CTkLabel(tab, text="Tenant").grid(row=0, column=0, sticky="w", pady=4)
-        self.tenant = ctk.CTkComboBox(tab, values=[""], state="readonly")
+        self.tenant = ctk.CTkComboBox(tab, values=services.listar_tenants() or [""])
         self.tenant.grid(row=0, column=1, columnspan=2, sticky="ew", padx=8)
 
         ctk.CTkLabel(tab, text="Mes / Año").grid(row=1, column=0, sticky="w", pady=4)
@@ -122,12 +124,14 @@ class App(ctk.CTk):
         ctk.CTkButton(barra, text="Limpiar terminados", width=140, fg_color="transparent", border_width=1,
                       text_color=("gray10", "gray90"), command=self._limpiar_terminados).pack(side="right")
 
+        self.log_titulo = ctk.CTkLabel(tab, text="Registro (elige un proceso con «Log»)", anchor="w")
+        self.log_titulo.grid(row=6, column=0, columnspan=3, sticky="w")
         self.log = ctk.CTkTextbox(tab, height=150)
-        self.log.grid(row=6, column=0, columnspan=3, sticky="nsew", pady=4)
-        tab.rowconfigure(6, weight=1)
+        self.log.grid(row=7, column=0, columnspan=3, sticky="nsew", pady=4)
+        tab.rowconfigure(7, weight=1)
 
         botones = ctk.CTkFrame(tab, fg_color="transparent")
-        botones.grid(row=7, column=0, columnspan=3, sticky="w")
+        botones.grid(row=8, column=0, columnspan=3, sticky="w")
         ctk.CTkButton(botones, text="Abrir último Excel", command=lambda: self._abrir(self.ultimo_excel)).pack(side="left")
         ctk.CTkButton(botones, text="Abrir carpeta de salida",
                       command=lambda: self._abrir(self.salida.get())).pack(side="left", padx=8)
@@ -138,33 +142,61 @@ class App(ctk.CTk):
 
     def _agregar_fila(self, id_proceso, tenant, clave_mes):
         r = id_proceso + 1
-        w = {"terminado": False, "widgets": []}
+        w = {"terminado": False}
         textos = {"Tenant": tenant, "Mes": clave_mes, "Estado": "⏳ En curso", "Correos": "—", "ZIPs": "—", "Facturas": "—"}
         for c, nombre in enumerate(self.COLUMNAS):
             if nombre == "Avance":
-                w[nombre] = ctk.CTkProgressBar(self.panel, width=90)
-                w[nombre].set(0)
-            elif nombre == "Excel":
-                w[nombre] = ctk.CTkButton(self.panel, text="Abrir", width=60, state="disabled")
+                celda = ctk.CTkFrame(self.panel, fg_color="transparent")
+                w["barra"] = ctk.CTkProgressBar(celda, width=90)
+                w["barra"].set(0)
+                w["barra"].pack(side="left")
+                w["pct"] = ctk.CTkLabel(celda, text="0%", width=40)
+                w["pct"].pack(side="left", padx=(6, 0))
+            elif nombre == "Acciones":
+                celda = ctk.CTkFrame(self.panel, fg_color="transparent")
+                ctk.CTkButton(celda, text="Log", width=50, command=lambda i=id_proceso: self._ver_log(i)).pack(side="left", padx=2)
+                w["detener"] = ctk.CTkButton(celda, text="Detener", width=70, fg_color="#B54A4A", hover_color="#933B3B",
+                                             command=lambda i=id_proceso: self._detener(i))
+                w["detener"].pack(side="left", padx=2)
+                w["excel"] = ctk.CTkButton(celda, text="Excel", width=55, state="disabled")
+                w["excel"].pack(side="left", padx=2)
             else:
-                w[nombre] = ctk.CTkLabel(self.panel, text=textos[nombre])
-            w[nombre].grid(row=r, column=c, padx=8, pady=2, sticky="w")
-            w["widgets"].append(w[nombre])
+                celda = ctk.CTkLabel(self.panel, text=textos[nombre])
+                w[nombre] = celda
+            celda.grid(row=r, column=c, padx=8, pady=2, sticky="w")
+            w.setdefault("widgets", []).append(celda)
         self.filas[id_proceso] = w
+
+    def _poner_avance(self, id_proceso, fraccion):
+        fila = self.filas.get(id_proceso)
+        if fila:
+            fila["barra"].set(fraccion)
+            fila["pct"].configure(text=f"{int(round(fraccion * 100))}%")
+
+    def _detener(self, id_proceso):
+        proceso, fila = self.procesos.get(id_proceso), self.filas.get(id_proceso)
+        if proceso and fila and not fila["terminado"]:
+            proceso.detener()
+            fila["Estado"].configure(text="⏹ Deteniendo…")
+            fila["detener"].configure(state="disabled")
+            self._agregar_log(id_proceso, "⏹ Se pidió detener; termina en el siguiente punto seguro.")
 
     def _terminar_fila(self, id_proceso, res):
         fila = self.filas.get(id_proceso)
         if not fila:
             return
         fila["terminado"] = True
+        fila["detener"].configure(state="disabled")
         if res.ok:
             r = res.resultado
             fila["Estado"].configure(text="✅ Listo", text_color="#2E9E5B")
-            fila["Avance"].set(1)
+            self._poner_avance(id_proceso, 1)
             fila["Correos"].configure(text=str(r.correos))
             fila["ZIPs"].configure(text=str(r.zips))
             fila["Facturas"].configure(text=str(r.facturas))
-            fila["Excel"].configure(state="normal", command=lambda x=r.excel: self._abrir(x))
+            fila["excel"].configure(state="normal", command=lambda x=r.excel: self._abrir(x))
+        elif res.cancelado:
+            fila["Estado"].configure(text="⏹ Detenido", text_color="gray")
         else:
             fila["Estado"].configure(text="❌ Error", text_color="#D64545")
 
@@ -172,11 +204,32 @@ class App(ctk.CTk):
         for id_proceso in [i for i, f in self.filas.items() if f["terminado"]]:
             for w in self.filas.pop(id_proceso)["widgets"]:
                 w.destroy()
+            self.procesos.pop(id_proceso, None)
+            self.logs.pop(id_proceso, None)
+            if self.log_id == id_proceso:
+                self.log_id = None
+                self.log.delete("1.0", "end")
+                self.log_titulo.configure(text="Registro (elige un proceso con «Log»)")
         self._actualizar_total()
 
     def _actualizar_total(self):
         en_curso = self.lanzador.en_curso
         self.total.configure(text=f"En curso: {en_curso}" if en_curso else "")
+
+    # ----- log propio de cada proceso -----
+    def _agregar_log(self, id_proceso, linea):
+        self.logs.setdefault(id_proceso, []).append(linea)
+        if id_proceso == self.log_id:
+            self.log.insert("end", linea + "\n")
+            self.log.see("end")
+
+    def _ver_log(self, id_proceso):
+        self.log_id = id_proceso
+        fila = self.filas.get(id_proceso)
+        self.log_titulo.configure(text=f"Registro de {fila['Tenant'].cget('text')} {fila['Mes'].cget('text')}" if fila else "Registro")
+        self.log.delete("1.0", "end")
+        self.log.insert("end", "".join(l + "\n" for l in self.logs.get(id_proceso, [])))
+        self.log.see("end")
 
     def _elegir_salida(self):
         carpeta = filedialog.askdirectory(initialdir=self.salida.get())
@@ -197,15 +250,19 @@ class App(ctk.CTk):
         set_output_dir(self.salida.get())
 
         id_proceso, clave_mes = self.n_procesos, f"{mes:02d}/{anio}"
-        reporter = ReporterGui(self.cola, id_proceso, f"{tenant} {clave_mes}")
         try:
-            self.lanzador.lanzar(tenant, mes, anio, reporter,
-                                 al_terminar=lambda r, i=id_proceso: self.cola.put(("fin", (i, r))),
-                                 reverificar=bool(self.reverificar.get()))
+            proceso = self.lanzador.lanzar(
+                tenant, mes, anio, ReporterGui(self.cola, id_proceso),
+                al_terminar=lambda r, i=id_proceso: self.cola.put(("fin", (i, r))),
+                reverificar=bool(self.reverificar.get()))
         except (services.ProcesoDuplicado, services.DemasiadosProcesos) as e:
             return messagebox.showinfo("No se puede lanzar", str(e))
         self.n_procesos += 1
+        self.procesos[id_proceso] = proceso
         self._agregar_fila(id_proceso, tenant, clave_mes)
+        # el log del proceso nuevo se muestra salvo que se esté leyendo otro que sigue corriendo
+        if self.log_id is None or self.filas.get(self.log_id, {}).get("terminado", True):
+            self._ver_log(id_proceso)
         self._actualizar_total()
 
     def _leer_cola(self):
@@ -213,24 +270,23 @@ class App(ctk.CTk):
             while True:
                 tipo, dato = self.cola.get_nowait()
                 if tipo == "log":
-                    self.log.insert("end", dato + "\n")
-                    self.log.see("end")
+                    self._agregar_log(*dato)
                 elif tipo == "progress":
-                    id_proceso, fraccion = dato
-                    if id_proceso in self.filas:
-                        self.filas[id_proceso]["Avance"].set(fraccion)
+                    self._poner_avance(*dato)
                 elif tipo == "fin":
                     id_proceso, res = dato
                     self._terminar_fila(id_proceso, res)
                     if res.ok:
                         self.ultimo_excel = res.resultado.excel
+                    elif res.cancelado:
+                        self._agregar_log(id_proceso, "⏹ Proceso detenido por el usuario.")
                     else:
-                        self.log.insert("end", f"[{res.tenant} {res.mes:02d}/{res.anio}] ❌ {res.error}\n")
+                        self._agregar_log(id_proceso, f"❌ {res.error}")
                         messagebox.showerror(f"Falló {res.tenant} {res.mes:02d}/{res.anio}", res.error)
                     self._actualizar_total()
                 elif tipo == "estado":
                     self.c_estado.configure(text=dato)
-                    self._refrescar_empresas()
+                    self.tenant.configure(values=services.listar_tenants() or [""])
         except queue.Empty:
             pass
         self.after(100, self._leer_cola)

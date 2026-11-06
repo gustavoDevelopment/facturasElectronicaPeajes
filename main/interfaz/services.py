@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Optional
 
+from bussines.cancelacion import ProcesoCancelado
 from bussines.tcEmail import do_on_start
 from bussines.tcExtracFacturacion import do_on_start_extract_facturacion
 from config import tenant_email_path, tenant_secrets_dir
@@ -39,6 +40,7 @@ class ResultadoMes:
     resultado: Optional[object] = None
     error: str = ""
     tenant: str = ""
+    cancelado: bool = False
 
 
 class ConfiguracionIncompleta(Exception):
@@ -65,12 +67,12 @@ def cargar_email(tenant_id: str) -> dict:
     return email
 
 
-def ejecutar_proceso(tenant_id: str, mes: int, anio: int, reporter, reverificar: bool = True):
+def ejecutar_proceso(tenant_id: str, mes: int, anio: int, reporter, reverificar: bool = True, cancelar=None):
     """Descarga los ZIP del mes y genera el Excel. Devuelve un ResumenProceso."""
     email = cargar_email(tenant_id)
     sub = f"{mes}_{anio}"
-    descarga = do_on_start(sub, mes, anio, email, tenant_id, reporter, reverificar)
-    proceso = do_on_start_extract_facturacion(sub, tenant_id, reporter)
+    descarga = do_on_start(sub, mes, anio, email, tenant_id, reporter, reverificar, cancelar=cancelar)
+    proceso = do_on_start_extract_facturacion(sub, tenant_id, reporter, cancelar=cancelar)
     return ResumenProceso(descarga.correos, descarga.descargados, proceso.zips, proceso.facturas, proceso.excel)
 
 
@@ -80,6 +82,20 @@ class ProcesoDuplicado(Exception):
 
 class DemasiadosProcesos(Exception):
     """Se alcanzó el máximo de procesos en curso a la vez."""
+
+
+class Proceso:
+    """Un proceso en marcha: permite detenerlo."""
+
+    def __init__(self):
+        self._cancelar = threading.Event()
+
+    def detener(self) -> None:
+        self._cancelar.set()
+
+    @property
+    def deteniendo(self) -> bool:
+        return self._cancelar.is_set()
 
 
 class Lanzador:
@@ -92,7 +108,7 @@ class Lanzador:
     def __init__(self, max_simultaneos: int = MAX_SIMULTANEOS):
         self.max_simultaneos = max_simultaneos
         self._lock = threading.Lock()
-        self._activos = set()
+        self._activos = {}
 
     @property
     def en_curso(self) -> int:
@@ -107,21 +123,22 @@ class Lanzador:
             if len(self._activos) >= self.max_simultaneos:
                 raise DemasiadosProcesos(
                     f"Ya hay {self.max_simultaneos} procesos en curso; espera a que termine alguno.")
-            self._activos.add(clave)
+            proceso = self._activos[clave] = Proceso()
 
         def trabajo():
             try:
-                resultado = ResultadoMes(mes, anio, True, ejecutar_proceso(tenant_id, mes, anio, reporter, reverificar),
-                                         tenant=tenant_id)
+                resumen = ejecutar_proceso(tenant_id, mes, anio, reporter, reverificar, proceso._cancelar)
+                resultado = ResultadoMes(mes, anio, True, resumen, tenant=tenant_id)
+            except ProcesoCancelado as e:
+                resultado = ResultadoMes(mes, anio, False, error=str(e), tenant=tenant_id, cancelado=True)
             except Exception as e:  # el error se muestra en el panel, no se pierde
                 resultado = ResultadoMes(mes, anio, False, error=str(e), tenant=tenant_id)
             with self._lock:
-                self._activos.discard(clave)  # antes del aviso, para poder relanzar de inmediato
+                self._activos.pop(clave, None)  # antes del aviso, para poder relanzar de inmediato
             al_terminar(resultado)
 
-        hilo = threading.Thread(target=trabajo, daemon=True)
-        hilo.start()
-        return hilo
+        threading.Thread(target=trabajo, daemon=True).start()
+        return proceso
 
 
 def _guardar(tenant_id: str, actualizar) -> str:
