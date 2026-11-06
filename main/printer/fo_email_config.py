@@ -2,25 +2,21 @@
 Asistente de configuración de correo (email.json) para un tenant.
 
 Permite elegir entre autenticación por password de aplicación (legacy) o
-OAuth 2.0 (recomendado para Gmail), y guarda build/tenant/<id>/email.json.
+OAuth 2.0 (recomendado para Gmail), y guarda <SECRETS_DIR>/<id>/email.json (fuera del repo).
 """
 import os
 
 from objects.fo_obj_email import ConfiguracionEmail
 from objects.fo_gmail_oauth import obtener_credenciales
+from config import tenant_email_path
 from logger import get_logger
 
 logger = get_logger(__name__)
 
 
-def _tenant_email_path(tenant_id: str) -> str:
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base_dir, "build", "tenant", tenant_id, "email.json")
-
-
 def configurar_email_tenant(tenant_id: str) -> None:
     """Menú interactivo para (re)configurar el email de un tenant."""
-    tenant_file = _tenant_email_path(tenant_id)
+    tenant_file = tenant_email_path(tenant_id)
     configuracion = ConfiguracionEmail(tenant_file)
 
     if os.path.exists(tenant_file):
