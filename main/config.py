@@ -9,7 +9,10 @@ import shutil
 from pathlib import Path
 from typing import Any, Dict, Optional
 from dotenv import load_dotenv
-from settings import user_data_dir
+try:
+    from settings import user_data_dir
+except ImportError:  # importado como paquete main.config
+    from main.settings import user_data_dir
 
 # Cargar variables de entorno desde .env si existe
 env_path = Path(__file__).parent.parent / ".env"
