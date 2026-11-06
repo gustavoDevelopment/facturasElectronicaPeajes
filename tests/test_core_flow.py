@@ -26,7 +26,7 @@ class EventosReporter(Reporter):
     def error(self, mensaje):
         self.eventos.append(("error", mensaje))
 
-    def progress(self, actual, total, mensaje=""):
+    def progress(self, actual, total, mensaje="", fase=""):
         self.eventos.append(("progress", actual, total))
 
 

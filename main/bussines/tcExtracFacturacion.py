@@ -6,6 +6,7 @@ from bussines.tcCausar import agregar_filas_al_excel
 from bussines.tcCausar import crear_archivo_excel_con_cabecera
 from bussines.tcProcesFacturacion import extraer_datos_factura
 from dataclasses import dataclass
+from bussines.cancelacion import comprobar
 from bussines.paths import tenant_work_dir, plantilla_path
 from bussines.reporter import Reporter
 from objects.fo_obj_plantilla import do_on_get_columns
@@ -23,7 +24,8 @@ class ResultadoProceso:
     excel: str = ""
 
 
-def descomprimir_y_procesar_zip(subFolder, zipPath, zipName, processDir, closedDir, reporter=None):
+def descomprimir_zip(subFolder, zipPath, zipName, processDir, reporter=None):
+    """Descomprime un ZIP y devuelve (carpeta, XML). No lo mueve: eso se hace al final."""
     reporter = reporter or Reporter()
     carpeta_destino = os.path.join(processDir, subFolder, zipName)
     os.makedirs(carpeta_destino, exist_ok=True)
@@ -32,11 +34,13 @@ def descomprimir_y_procesar_zip(subFolder, zipPath, zipName, processDir, closedD
         archivos_xml = [n for n in zip_ref.namelist() if n.lower().endswith('.xml')]
         zip_ref.extractall(carpeta_destino)
     reporter.info(f"📁 {zipName}: {len(archivos_xml)} XML descomprimidos en {carpeta_destino}")
+    return carpeta_destino, archivos_xml
 
-    # Mover el ZIP a la carpeta 'closed'
+
+def cerrar_zip(zipPath, closedDir):
+    """Mueve un ZIP ya incluido en el Excel a la carpeta 'closed'."""
     os.makedirs(closedDir, exist_ok=True)
     shutil.move(zipPath, os.path.join(closedDir, os.path.basename(zipPath)))
-    return carpeta_destino, archivos_xml
 
 
 def do_on_create_voucher(factura_id, texto_factura, voucherDir, reporter=None):
@@ -48,7 +52,7 @@ def do_on_create_voucher(factura_id, texto_factura, voucherDir, reporter=None):
     reporter.info(f"Factura guardada en: {file_path}")
 
 
-def do_on_start_extract_facturacion(subFolder, tenant_id, reporter=None, output_dir=None):
+def do_on_start_extract_facturacion(subFolder, tenant_id, reporter=None, output_dir=None, cancelar=None):
     reporter = reporter or Reporter()
     trabajo = tenant_work_dir(tenant_id, output_dir)
     base_facturas = str(trabajo / "zip" / subFolder)
@@ -67,20 +71,26 @@ def do_on_start_extract_facturacion(subFolder, tenant_id, reporter=None, output_
 
     lista_peajes = []
     for n, filename in enumerate(zips, start=1):
-        reporter.progress(n, len(zips), f"ZIP: {filename}")
+        comprobar(cancelar)
         path = os.path.join(base_facturas, filename)
-        pathFileFac, archivos_xml = descomprimir_y_procesar_zip(
-            subFolder, path, filename, process_dir, closed_dir, reporter)
+        pathFileFac, archivos_xml = descomprimir_zip(subFolder, path, filename, process_dir, reporter)
         for fileNameXml in archivos_xml:
             ruta_completa = os.path.join(pathFileFac, fileNameXml)
             factura_id, texto_factura = extraer_datos_factura(ruta_completa)
             do_on_create_voucher(str(factura_id), str(texto_factura), voucher_dir, reporter)
             lista_peajes.append(texto_factura)
+        reporter.progress(n, len(zips), f"ZIP: {filename}", "proceso")
 
+    comprobar(cancelar)
     reporter.info("🔎 Generando plantilla...")
     cabeceras = do_on_get_columns(str(plantilla_path(tenant_id)))
     path_plantilla = crear_archivo_excel_con_cabecera(
         str(trabajo), subFolder, cabeceras, reporter)
     agregar_filas_al_excel(path_plantilla, lista_peajes, reporter)
+
+    # Los ZIP se cierran solo cuando sus datos ya están en el Excel: si el proceso se
+    # detiene o falla antes, no se pierde nada y se puede volver a ejecutar.
+    for filename in zips:
+        cerrar_zip(os.path.join(base_facturas, filename), closed_dir)
     reporter.info("✅ Proceso completado.")
     return ResultadoProceso(len(zips), len(lista_peajes), path_plantilla)

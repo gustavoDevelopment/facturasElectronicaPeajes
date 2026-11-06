@@ -67,7 +67,7 @@ En un equipo limpio no existe el `email.json` ni el token de Google: **la propia
    2. **Servidor IMAP:** `imap.gmail.com`. **Correo:** la cuenta que recibe las facturas.
    3. Marca **Google (OAuth2)**, elige el `client_secret.json` con *Elegir…* y pulsa **Guardar / Vincular**; se abre el navegador, inicia sesión y acepta los permisos. Con contraseña de aplicación, escríbela y pulsa **Guardar / Vincular**.
 5. Al ver `✅ Guardado en …` ya existen, creados por la app, el `email.json` y (con OAuth2) el `gmail_token.json` en la carpeta de credenciales (ver [Configuración](#configuración)). El tenant aparece en la lista de la pestaña **Procesar**.
-6. En **Procesar** elige tenant, mes, año y la **carpeta de salida**, y pulsa **Descargar y procesar**.
+6. En **Procesar** elige tenant, mes, año y la **carpeta de salida**, y pulsa **Lanzar proceso**.
 
 Esto se hace **una sola vez por tenant y por equipo**; las siguientes veces solo se usa la pestaña **Procesar**.
 
@@ -101,10 +101,15 @@ Pestaña **Correo**:
 
 Pestaña **Procesar**:
 
-1. Elige el **tenant** y el rango **Desde / Hasta** (mes y año; por defecto, el mes anterior). Para varios meses, pon un rango (por ejemplo ene–mar 2026): cada mes se procesa por separado y se pueden correr **a la vez** (*Procesos simultáneos*, de 1 a 4; máximo 24 meses por ejecución).
+1. Elige el **tenant** y el **mes** y **año** (por defecto, el mes anterior).
 2. Elige la **carpeta de salida** con *Elegir…* (una sola para todos los tenants).
-3. Pulsa **Descargar y procesar**. Verás la barra de progreso, el **panel de resumen** (una fila por mes con estado, correos, ZIP, facturas y botón para abrir su Excel) y el registro de descarga en vivo.
-4. Un mes que falle no detiene a los demás. Al terminar usa **Abrir** en cada fila, **Abrir último Excel** o **Abrir carpeta de salida**.
+3. Pulsa **Lanzar proceso**. Puedes **lanzar otro mes u otra empresa mientras el anterior sigue corriendo** (hasta 4 a la vez; no se puede repetir el mismo tenant y mes en curso).
+4. El panel **Procesos** tiene una fila por proceso con su estado, una barra con el **porcentaje de avance sobre 100 %** (descarga de correos 0–50 %, procesamiento de ZIP 50–100 %), los correos, los ZIP y las facturas.
+5. En cada fila:
+   - **Log:** muestra el registro de **ese** proceso (cada proceso tiene el suyo).
+   - **Detener:** lo detiene en el siguiente punto seguro. No se pierde información: los ZIP solo pasan a `closedZip` cuando el Excel ya está generado, así que al relanzar ese mes se procesa completo.
+   - **Excel:** abre el archivo generado.
+6. Un proceso que falle o se detenga no afecta a los demás. **Limpiar terminados** quita las filas finalizadas.
 
 Si ya hay ZIP descargados del mes, la casilla *Verificar y descargar faltantes* decide si se vuelve a consultar el correo.
 
