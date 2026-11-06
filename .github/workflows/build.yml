@@ -25,23 +25,23 @@ jobs:
       - name: Tests
         run: python -m pytest tests -q
       - name: Build
-        run: pyinstaller facturae.spec --noconfirm
+        run: pyinstaller causa_peajes.spec --noconfirm
       - name: Self-check (macOS)
         if: runner.os == 'macOS'
-        run: dist/FacturaeOptimus.app/Contents/MacOS/FacturaeOptimus --check
+        run: '"dist/Causa Peajes.app/Contents/MacOS/CausaPeajes" --check'
       - name: Self-check (Windows)
         if: runner.os == 'Windows'
-        run: dist/FacturaeOptimus/FacturaeOptimus.exe --check
+        run: dist/CausaPeajes/CausaPeajes.exe --check
       - name: Package (macOS)
         if: runner.os == 'macOS'
-        run: ditto -c -k --keepParent dist/FacturaeOptimus.app FacturaeOptimus-macos.zip
+        run: ditto -c -k --keepParent "dist/Causa Peajes.app" CausaPeajes-macos.zip
       - name: Package (Windows)
         if: runner.os == 'Windows'
-        run: Compress-Archive -Path dist/FacturaeOptimus -DestinationPath FacturaeOptimus-windows.zip
+        run: Compress-Archive -Path dist/CausaPeajes -DestinationPath CausaPeajes-windows.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: FacturaeOptimus-${{ runner.os }}
-          path: FacturaeOptimus-*.zip
+          name: CausaPeajes-${{ runner.os }}
+          path: CausaPeajes-*.zip
 
   release:
     # Al crear un tag v*, publica los dos zips en la sección Releases del repo

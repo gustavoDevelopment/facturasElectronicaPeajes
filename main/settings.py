@@ -11,6 +11,8 @@ import os
 import sys
 from pathlib import Path
 
+# Nombre interno de la carpeta de datos: se conserva para no perder la configuración
+# de quien ya usaba la aplicación con su nombre anterior.
 APP_DIR_NAME = "FacturaeOptimus"
 SETTINGS_FILENAME = "settings.json"
 
@@ -26,6 +28,12 @@ def user_data_dir() -> Path:
     else:
         base = Path(os.getenv("XDG_DATA_HOME", Path.home() / ".local" / "share"))
     return base / APP_DIR_NAME
+
+
+def ruta_recurso(relativa: str) -> Path:
+    """Archivo incluido con la aplicación (assets, plantillas), también empaquetada."""
+    raiz = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]))
+    return raiz / relativa
 
 
 def settings_path() -> Path:
@@ -50,7 +58,8 @@ def default_output_dir() -> Path:
     legacy = Path(__file__).resolve().parents[2] / "Facturae_Optimus"
     if not getattr(sys, "frozen", False) and legacy.is_dir():
         return legacy
-    return Path.home() / "Documents" / "Facturae_Optimus"
+    previa = Path.home() / "Documents" / "Facturae_Optimus"
+    return previa if previa.is_dir() else Path.home() / "Documents" / "Causa Peajes"
 
 
 def get_output_dir() -> Path:

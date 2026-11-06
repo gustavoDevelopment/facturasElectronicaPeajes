@@ -47,3 +47,8 @@ def test_plantilla_se_copia_a_la_carpeta_del_usuario(tmp_path, monkeypatch):
 
     assert ruta == tmp_path / "home" / "tenants" / "test" / "plantilla.json"
     assert ruta.exists()
+
+
+def test_iconos_de_la_aplicacion_existen():
+    for nombre in ("icon.png", "icon.ico", "icon.icns", "icon.svg"):
+        assert settings.ruta_recurso(f"assets/{nombre}").stat().st_size > 0

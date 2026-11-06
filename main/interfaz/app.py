@@ -1,7 +1,9 @@
 """Ventana principal (CustomTkinter): procesar facturas y configurar el correo."""
 import os
 import queue
+import sys
 import threading
+import tkinter as tk
 import webbrowser
 from tkinter import filedialog, messagebox
 
@@ -10,7 +12,7 @@ import customtkinter as ctk
 from bussines.reporter import Reporter
 from interfaz import services
 from interfaz.ayuda import AYUDA, ENLACES
-from settings import get_output_dir, set_output_dir
+from settings import get_output_dir, ruta_recurso, set_output_dir
 
 MESES = [str(m) for m in range(1, 13)]
 
@@ -44,7 +46,8 @@ class ReporterGui(Reporter):
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("Facturae Optimus")
+        self.title("Causa Peajes")
+        self._icono()
         self.geometry("860x780")
         self.cola = queue.Queue()
         self.ultimo_excel = ""
@@ -55,6 +58,17 @@ class App(ctk.CTk):
         self._tab_correo(self.tabs.add("Correo"))
         self._tab_ayuda(self.tabs.add("Ayuda"))
         self.after(100, self._leer_cola)
+
+    def _icono(self):
+        """Ícono de la ventana; si no se puede cargar, la aplicación sigue sin él."""
+        try:
+            if sys.platform == "win32":
+                self.iconbitmap(str(ruta_recurso("assets/icon.ico")))
+            else:
+                self._img_icono = tk.PhotoImage(file=str(ruta_recurso("assets/icon.png")))
+                self.iconphoto(True, self._img_icono)
+        except Exception:
+            pass
 
     # ---------- Procesar ----------
     COLUMNAS = ("Tenant", "Mes", "Estado", "Avance", "Correos", "ZIPs", "Facturas", "Excel")
@@ -305,6 +319,8 @@ def autotest() -> str:
     """Comprueba que la ventana y los recursos incluidos funcionan (usado en CI)."""
     from bussines.paths import plantilla_path
 
+    if not ruta_recurso("assets/icon.png").exists():
+        raise RuntimeError("Falta el ícono incluido (assets/icon.png)")
     if not plantilla_path("test").exists():
         raise RuntimeError("Falta la plantilla incluida (build/tenant/test/plantilla.json)")
     app = App()
