@@ -21,7 +21,7 @@ if env_path.exists():
     load_dotenv(dotenv_path=env_path)
 
 # Constantes de la aplicación
-APP_NAME = "Facturae Optimus"
+APP_NAME = "Causa Peajes"
 VERSION = "1.0.0"
 DEFAULT_ENCODING = "utf-8"
 

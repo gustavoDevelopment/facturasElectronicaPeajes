@@ -1,4 +1,4 @@
-# Facturae Optimus
+# Causa Peajes
 
 Aplicación de escritorio (macOS y Windows) que automatiza la gestión de **facturas electrónicas de peajes**: descarga desde el correo los ZIP con las facturas del mes, extrae los datos de los XML y genera el Excel listo para causar.
 
@@ -33,14 +33,14 @@ No hace falta tener Python. Descarga la última versión desde la sección **[Re
 
 | Sistema | Archivo | Cómo abrirlo |
 |---|---|---|
-| macOS | `FacturaeOptimus-macos.zip` | Descomprimir, mover `FacturaeOptimus.app` a *Aplicaciones* y abrir |
-| Windows | `FacturaeOptimus-windows.zip` | Descomprimir **toda** la carpeta y ejecutar `FacturaeOptimus.exe` |
+| macOS | `CausaPeajes-macos.zip` | Descomprimir, mover `Causa Peajes.app` a *Aplicaciones* y abrir |
+| Windows | `CausaPeajes-windows.zip` | Descomprimir **toda** la carpeta y ejecutar `CausaPeajes.exe` |
 
 La aplicación **no está firmada digitalmente**, por lo que el sistema avisa la primera vez:
 
 - **macOS:** clic derecho sobre la app → **Abrir** → **Abrir**. Si dice que está dañada:
   ```bash
-  xattr -cr /Applications/FacturaeOptimus.app
+  xattr -cr "/Applications/Causa Peajes.app"
   ```
 - **Windows:** en SmartScreen pulsar **Más información** → **Ejecutar de todas formas**. No muevas el `.exe` fuera de su carpeta: necesita los archivos que lo acompañan.
 
@@ -115,9 +115,9 @@ Los datos de la aplicación viven fuera del código, en la carpeta del usuario:
 |---|---|---|
 | Tenants, plantillas, logs, `settings.json` | `~/Library/Application Support/FacturaeOptimus` | `%APPDATA%\FacturaeOptimus` |
 | Credenciales de correo (por tenant) | `~/.facturae_optimus/secrets/<tenant>/` | `%USERPROFILE%\.facturae_optimus\secrets\<tenant>\` |
-| Carpeta de salida por defecto | `~/Documents/Facturae_Optimus` | `%USERPROFILE%\Documents\Facturae_Optimus` |
+| Carpeta de salida por defecto | `~/Documents/Causa Peajes` | `%USERPROFILE%\Documents\Causa Peajes` |
 
-La plantilla de ejemplo incluida se copia a la carpeta de datos la primera vez que se usa un tenant.
+La carpeta de datos conserva el nombre interno `FacturaeOptimus` (nombre anterior de la aplicación) para no perder la configuración existente. La plantilla de ejemplo incluida se copia a la carpeta de datos la primera vez que se usa un tenant.
 
 Variables de entorno opcionales (también en un archivo `.env`, ver `.env.example`):
 
@@ -131,7 +131,7 @@ Variables de entorno opcionales (también en un archivo `.env`, ver `.env.exampl
 
 ## Generar los instaladores (macOS y Windows)
 
-Los instaladores se construyen con **PyInstaller** a partir de `facturae.spec`. **PyInstaller no compila de un sistema a otro**: el `.app` se construye en un Mac y el `.exe` en un Windows. Por eso la vía recomendada es el workflow de GitHub Actions, que construye ambos.
+Los instaladores se construyen con **PyInstaller** a partir de `causa_peajes.spec`. **PyInstaller no compila de un sistema a otro**: el `.app` se construye en un Mac y el `.exe` en un Windows. Por eso la vía recomendada es el workflow de GitHub Actions, que construye ambos.
 
 Los binarios **no se guardan en git**; se publican como *artifacts* del workflow o en **Releases**.
 
@@ -150,7 +150,7 @@ Genera los dos instaladores y los deja descargables en **Releases**.
    git push origin v1.0.0
    ```
 3. En GitHub abre **Actions → Build apps** y espera a que terminen los trabajos `macos-latest`, `windows-latest` y `release` (unos minutos).
-4. Descarga `FacturaeOptimus-macos.zip` y `FacturaeOptimus-windows.zip` desde **Releases → v1.0.0**.
+4. Descarga `CausaPeajes-macos.zip` y `CausaPeajes-windows.zip` desde **Releases → v1.0.0**.
 
 Cada trabajo instala dependencias, corre las pruebas, construye, ejecuta una **autoprueba del binario** (`--check`) y empaqueta. Si algo falla no se crea la release: revisa el log del paso en rojo.
 
@@ -166,7 +166,7 @@ Si el repositorio restringe los permisos, activa *Read and write permissions* en
 
 Requisitos: Python 3.9 o superior con Tk (incluido en los instaladores oficiales de python.org y en `python-tk` de Homebrew).
 
-#### macOS → `FacturaeOptimus.app`
+#### macOS → `Causa Peajes.app`
 
 ```bash
 python3 -m venv .venv
@@ -174,15 +174,15 @@ source .venv/bin/activate
 python -m pip install -r requirements-dev.txt pyinstaller
 
 python -m pytest tests -q
-python -m PyInstaller facturae.spec --noconfirm
+python -m PyInstaller causa_peajes.spec --noconfirm
 
-dist/FacturaeOptimus.app/Contents/MacOS/FacturaeOptimus --check   # debe imprimir OK
-ditto -c -k --keepParent dist/FacturaeOptimus.app FacturaeOptimus-macos.zip
+"dist/Causa Peajes.app/Contents/MacOS/CausaPeajes" --check   # debe imprimir OK
+ditto -c -k --keepParent "dist/Causa Peajes.app" CausaPeajes-macos.zip
 ```
 
 Usa `ditto` para el zip: el `zip` normal puede dañar los permisos del `.app`.
 
-#### Windows → `FacturaeOptimus.exe`
+#### Windows → `CausaPeajes.exe`
 
 En PowerShell:
 
@@ -192,19 +192,19 @@ py -m venv .venv
 python -m pip install -r requirements-dev.txt pyinstaller
 
 python -m pytest tests -q
-python -m PyInstaller facturae.spec --noconfirm
+python -m PyInstaller causa_peajes.spec --noconfirm
 
-.\dist\FacturaeOptimus\FacturaeOptimus.exe --check   # debe imprimir OK
-Compress-Archive -Path dist\FacturaeOptimus -DestinationPath FacturaeOptimus-windows.zip
+.\dist\CausaPeajes\CausaPeajes.exe --check   # debe imprimir OK
+Compress-Archive -Path dist\CausaPeajes -DestinationPath CausaPeajes-windows.zip
 ```
 
 Si PowerShell bloquea la activación del entorno, ejecuta una vez `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
 
-El resultado en Windows es una **carpeta** (`dist\FacturaeOptimus\`) que debe distribuirse completa.
+El resultado en Windows es una **carpeta** (`dist\CausaPeajes\`) que debe distribuirse completa.
 
 ### Qué incluye el build
 
-`facturae.spec` empaqueta la interfaz (`gui_main.py`), los recursos de `customtkinter`, el `tenants.json` y las plantillas `plantilla.json` de ejemplo. La opción `--check` abre y cierra la ventana y comprueba que esos recursos están presentes.
+`causa_peajes.spec` empaqueta la interfaz (`gui_main.py`), los recursos de `customtkinter`, el `tenants.json` y las plantillas `plantilla.json` de ejemplo. La opción `--check` abre y cierra la ventana y comprueba que esos recursos están presentes.
 
 ## Desarrollo
 
@@ -243,7 +243,8 @@ Cubren la extracción de datos de los XML, la descarga por IMAP (simulada), la g
 .
 ├── gui_main.py              Punto de entrada de la interfaz gráfica
 ├── __main__.py              Punto de entrada del menú de consola
-├── facturae.spec            Configuración de PyInstaller
+├── causa_peajes.spec        Configuración de PyInstaller
+├── assets/                  Logo e íconos (.svg, .png, .icns, .ico)
 ├── main/
 │   ├── interfaz/            Ventana (CustomTkinter) y servicios sin dependencia de UI
 │   ├── bussines/            Núcleo: descarga, extracción, Excel, rutas y Reporter
@@ -264,7 +265,7 @@ El núcleo (`main/bussines/`) **no usa `input()` ni `print()`**: recibe parámet
 |---|---|
 | `ModuleNotFoundError: No module named 'dotenv'` (u otro módulo) | Se ejecuta con un Python distinto al del entorno virtual. Activa `.venv` o ejecuta `.venv/bin/python …` |
 | `No module named '_tkinter'` | Falta Tk. macOS: `brew install python-tk@3.12` (según tu versión). Windows: reinstala Python marcando *tcl/tk* |
-| macOS: «la app está dañada» | Ejecuta `xattr -cr /Applications/FacturaeOptimus.app` |
+| macOS: «la app está dañada» | Ejecuta `xattr -cr "/Applications/Causa Peajes.app"` |
 | Windows: SmartScreen bloquea el `.exe` | *Más información* → *Ejecutar de todas formas* |
 | «El tenant … no tiene el correo configurado» | Configúralo en la pestaña **Correo** |
 | Gmail rechaza el acceso | Con OAuth2, vuelve a pulsar **Guardar / Vincular**; con contraseña, usa una **contraseña de aplicación**, no la de la cuenta |
