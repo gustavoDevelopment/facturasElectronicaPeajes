@@ -215,6 +215,18 @@ class App(ctk.CTk):
         threading.Thread(target=trabajo, daemon=True).start()
 
 
+def autotest() -> str:
+    """Comprueba que la ventana y los recursos incluidos funcionan (usado en CI)."""
+    from bussines.paths import plantilla_path
+
+    if not plantilla_path("test").exists():
+        raise RuntimeError("Falta la plantilla incluida (build/tenant/test/plantilla.json)")
+    app = App()
+    app.update()
+    app.destroy()
+    return "OK"
+
+
 def run():
     ctk.set_appearance_mode("system")
     App().mainloop()
