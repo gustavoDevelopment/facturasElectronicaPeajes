@@ -5,9 +5,11 @@ Este módulo carga la configuración desde variables de entorno y proporciona
 valores por defecto para la aplicación.
 """
 import os
+import shutil
 from pathlib import Path
 from typing import Any, Dict, Optional
 from dotenv import load_dotenv
+from settings import user_data_dir
 
 # Cargar variables de entorno desde .env si existe
 env_path = Path(__file__).parent.parent / ".env"
@@ -21,8 +23,16 @@ DEFAULT_ENCODING = "utf-8"
 
 # Configuración de directorios
 BASE_DIR = Path(__file__).parent.parent
-TENANTS_DIR = BASE_DIR / os.getenv("TENANTS_DIR", "build/tenant")
-LOG_DIR = BASE_DIR / os.getenv("LOG_DIR", "logs")
+# Tenants y logs viven en la carpeta de datos del usuario (ver settings.py),
+# no junto al código, para que funcione igual en una aplicación empaquetada.
+TENANTS_DIR = Path(os.getenv("TENANTS_DIR") or user_data_dir() / "tenants")
+LOG_DIR = Path(os.getenv("LOG_DIR") or user_data_dir() / "logs")
+
+# Primer arranque: copiar el tenants.json que trae el repositorio
+_incluido = BASE_DIR / "build" / "tenant" / "tenants.json"
+if not (TENANTS_DIR / "tenants.json").exists() and _incluido.exists():
+    TENANTS_DIR.mkdir(parents=True, exist_ok=True)
+    shutil.copy(_incluido, TENANTS_DIR / "tenants.json")
 
 # Secretos por tenant (email.json, gmail_token.json), fuera del repositorio
 SECRETS_DIR = Path(

@@ -6,11 +6,11 @@ from plantilla.cabecera import Cabecera
 from plantilla.constants import Constants
 from bussines.reporter import Reporter
 
-def crear_archivo_excel_con_cabecera(base_dir,subFolder,tenant_id,cabeceras,reporter=None):
+def crear_archivo_excel_con_cabecera(trabajo_dir,subFolder,cabeceras,reporter=None):
     reporter = reporter or Reporter()
     nombre_archivo = f"documento_{subFolder}.xlsx"
     # Establecer la ruta del archivo Excel
-    path_excel = os.path.join(base_dir,Constants.APLICATION_NAME.value[0],tenant_id, "output", nombre_archivo)  # Aquí creas el directorio "file"
+    path_excel = os.path.join(trabajo_dir, "output", nombre_archivo)
     # Verifica que la carpeta "file" exista, si no, créala
     if not os.path.exists(os.path.dirname(path_excel)):
         os.makedirs(os.path.dirname(path_excel))
