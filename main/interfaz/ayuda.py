@@ -37,7 +37,11 @@ Importante: mientras la pantalla de consentimiento esté en estado "Prueba", Goo
 caduca el token a los 7 días y habrá que volver a vincular. Para evitarlo, pulsa \
 "Publicar aplicación" en esa pantalla o usa la contraseña de aplicación.
 
-3) CONFIGURAR EL CORREO EN LA PESTAÑA "CORREO"
+3) AGREGAR LA EMPRESA (pestaña "Empresas") Y CONFIGURAR SU CORREO
+  • En "Empresas" pulsa "Agregar", escribe el nombre y elige la plantilla de Excel \
+(copiar de otra empresa o importar un archivo). Luego selecciónala y pulsa "Configurar \
+correo", que abre la pestaña "Correo" con la empresa ya escrita.
+  • Si en "Correo" escribes un nombre nuevo, la empresa también se agrega sola.
   • Tenant: nombre de la empresa (por ejemplo turboCarga). Es el mismo que luego eliges \
 en "Procesar".
   • Servidor IMAP: imap.gmail.com. Correo: la cuenta que recibe las facturas.

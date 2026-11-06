@@ -2,7 +2,6 @@
 Operaciones que usa la interfaz gráfica. No dependen de ninguna librería de
 ventanas, así que se pueden probar sin pantalla.
 """
-import json
 import os
 import subprocess
 import sys
@@ -13,8 +12,9 @@ from typing import Optional
 
 from bussines.tcEmail import do_on_start
 from bussines.tcExtracFacturacion import do_on_start_extract_facturacion
-from config import TENANTS_DIR, SECRETS_DIR, tenant_email_path, tenant_secrets_dir
+from config import tenant_email_path, tenant_secrets_dir
 from objects.fo_gmail_oauth import obtener_credenciales
+from interfaz import empresas
 from objects.fo_obj_email import ConfiguracionEmail
 
 
@@ -46,16 +46,8 @@ class ConfiguracionIncompleta(Exception):
 
 
 def listar_tenants() -> list:
-    """Tenants conocidos: los de tenants.json y los que ya tienen correo configurado."""
-    nombres = set()
-    try:
-        with open(TENANTS_DIR / "tenants.json", encoding="utf-8") as f:
-            nombres.update(t.get("name") for t in json.load(f).values() if t.get("name"))
-    except (OSError, ValueError):
-        pass
-    if SECRETS_DIR.is_dir():
-        nombres.update(d.name for d in SECRETS_DIR.iterdir() if (d / "email.json").exists())
-    return sorted(nombres)
+    """Nombres de las empresas (registradas o con correo configurado)."""
+    return [e["name"] for e in empresas.listar_empresas()]
 
 
 def mes_anterior(hoy=None):
@@ -141,6 +133,7 @@ def _guardar(tenant_id: str, actualizar) -> str:
         cfg.cargar_configuracion()
     actualizar(cfg)
     cfg.guardar_configuracion()
+    empresas.registrar_si_falta(tenant_id)  # una empresa nueva creada desde Correo también aparece en Empresas
     return ruta
 
 

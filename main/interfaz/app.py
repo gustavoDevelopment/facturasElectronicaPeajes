@@ -10,7 +10,7 @@ from tkinter import filedialog, messagebox
 import customtkinter as ctk
 
 from bussines.reporter import Reporter
-from interfaz import services
+from interfaz import empresas, services
 from interfaz.ayuda import AYUDA, ENLACES
 from settings import get_output_dir, ruta_recurso, set_output_dir
 
@@ -55,8 +55,10 @@ class App(ctk.CTk):
         self.tabs = ctk.CTkTabview(self)
         self.tabs.pack(fill="both", expand=True, padx=12, pady=12)
         self._tab_procesar(self.tabs.add("Procesar"))
+        self._tab_empresas(self.tabs.add("Empresas"))
         self._tab_correo(self.tabs.add("Correo"))
         self._tab_ayuda(self.tabs.add("Ayuda"))
+        self._refrescar_empresas()
         self.after(100, self._leer_cola)
 
     def _icono(self):
@@ -81,7 +83,7 @@ class App(ctk.CTk):
         self.n_procesos = 0
 
         ctk.CTkLabel(tab, text="Tenant").grid(row=0, column=0, sticky="w", pady=4)
-        self.tenant = ctk.CTkComboBox(tab, values=services.listar_tenants() or [""])
+        self.tenant = ctk.CTkComboBox(tab, values=[""], state="readonly")
         self.tenant.grid(row=0, column=1, columnspan=2, sticky="ew", padx=8)
 
         ctk.CTkLabel(tab, text="Mes / Año").grid(row=1, column=0, sticky="w", pady=4)
@@ -228,7 +230,7 @@ class App(ctk.CTk):
                     self._actualizar_total()
                 elif tipo == "estado":
                     self.c_estado.configure(text=dato)
-                    self.tenant.configure(values=services.listar_tenants() or [""])
+                    self._refrescar_empresas()
         except queue.Empty:
             pass
         self.after(100, self._leer_cola)
@@ -302,6 +304,145 @@ class App(ctk.CTk):
 
         threading.Thread(target=trabajo, daemon=True).start()
 
+
+    # ---------- Empresas ----------
+    def _tab_empresas(self, tab):
+        tab.columnconfigure(0, weight=1)
+        tab.rowconfigure(1, weight=1)
+        self.empresa_sel = ctk.StringVar()
+        acciones = ctk.CTkFrame(tab, fg_color="transparent")
+        acciones.grid(row=0, column=0, sticky="w", pady=(0, 8))
+        for texto, comando in (("Agregar", lambda: self._dialogo_empresa()),
+                               ("Editar", self._editar_empresa),
+                               ("Eliminar", self._eliminar_empresa),
+                               ("Configurar correo", self._configurar_correo)):
+            ctk.CTkButton(acciones, text=texto, width=120, command=comando).pack(side="left", padx=(0, 8))
+        self.lista = ctk.CTkScrollableFrame(tab, label_text="Empresas")
+        self.lista.grid(row=1, column=0, sticky="nsew")
+        ctk.CTkLabel(tab, text="El nombre identifica a la empresa (carpetas, correo y plantilla), por eso no se puede cambiar.",
+                     text_color="gray").grid(row=2, column=0, sticky="w", pady=(8, 0))
+
+    def _refrescar_empresas(self):
+        lista = empresas.listar_empresas()
+        for w in self.lista.winfo_children():
+            w.destroy()
+        for c, texto in enumerate(("Empresa", "Almacenamiento", "Correo", "Plantilla")):
+            ctk.CTkLabel(self.lista, text=texto, font=ctk.CTkFont(weight="bold")).grid(row=0, column=c, padx=10, sticky="w")
+        for r, e in enumerate(lista, start=1):
+            ctk.CTkRadioButton(self.lista, text=e["name"], variable=self.empresa_sel, value=e["name"]).grid(row=r, column=0, padx=10, pady=3, sticky="w")
+            ctk.CTkLabel(self.lista, text=empresas.ALMACENAMIENTOS.get(e["storage"], "—")).grid(row=r, column=1, padx=10, sticky="w")
+            ctk.CTkLabel(self.lista, text="✅ Configurado" if e["tiene_correo"] else "— Pendiente").grid(row=r, column=2, padx=10, sticky="w")
+            ctk.CTkLabel(self.lista, text="✅ Lista" if e["tiene_plantilla"] else "— Falta").grid(row=r, column=3, padx=10, sticky="w")
+        nombres = [e["name"] for e in lista]
+        self.tenant.configure(values=nombres or [""])
+        if self.tenant.get() not in nombres:
+            self.tenant.set(nombres[0] if nombres else "")
+        if self.empresa_sel.get() not in nombres:
+            self.empresa_sel.set("")
+
+    def _seleccionada(self):
+        nombre = self.empresa_sel.get()
+        if not nombre:
+            messagebox.showinfo("Elige una empresa", "Selecciona una empresa de la lista.")
+        return nombre
+
+    def _editar_empresa(self):
+        nombre = self._seleccionada()
+        if nombre:
+            self._dialogo_empresa(next(e for e in empresas.listar_empresas() if e["name"] == nombre))
+
+    def _eliminar_empresa(self):
+        nombre = self._seleccionada()
+        if not nombre or not messagebox.askyesno(
+                "Eliminar empresa",
+                f"¿Eliminar '{nombre}'?\n\nSe quita de la lista y se borra su plantilla. Los ZIP, vouchers y Excel "
+                "ya generados no se tocan."):
+            return
+        borrar = messagebox.askyesno("Credenciales de correo",
+                                     f"¿Borrar también las credenciales de correo de '{nombre}' (email y token)?")
+        empresas.eliminar_empresa(nombre, borrar_credenciales=borrar)
+        self._refrescar_empresas()
+
+    def _configurar_correo(self):
+        nombre = self._seleccionada()
+        if not nombre:
+            return
+        self.c_tenant.delete(0, "end")
+        self.c_tenant.insert(0, nombre)
+        try:  # rellena servidor y usuario si ya estaban guardados (nunca la contraseña)
+            actual = services.cargar_email(nombre)
+            for campo, clave in ((self.c_imap, "imap_server"), (self.c_user, "user")):
+                if actual.get(clave):
+                    campo.delete(0, "end")
+                    campo.insert(0, actual[clave])
+        except services.ConfiguracionIncompleta:
+            pass
+        self.tabs.set("Correo")
+
+    def _dialogo_empresa(self, existente=None):
+        d = ctk.CTkToplevel(self)
+        d.title("Editar empresa" if existente else "Agregar empresa")
+        d.geometry("470x430")
+        d.transient(self)
+        d.after(200, d.grab_set)
+        d.columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(d, text="Nombre").grid(row=0, column=0, padx=12, pady=8, sticky="w")
+        nombre = ctk.CTkEntry(d)
+        nombre.grid(row=0, column=1, padx=12, sticky="ew")
+        ctk.CTkLabel(d, text="Almacenamiento").grid(row=1, column=0, padx=12, pady=8, sticky="w")
+        sin_definir = "(sin definir)"
+        almacen = ctk.CTkComboBox(d, values=[sin_definir, *empresas.ALMACENAMIENTOS.values()], state="readonly")
+        almacen.grid(row=1, column=1, padx=12, sticky="ew")
+        ctk.CTkLabel(d, text="Correo de la empresa").grid(row=2, column=0, padx=12, pady=8, sticky="w")
+        correo = ctk.CTkEntry(d, placeholder_text="opcional")
+        correo.grid(row=2, column=1, padx=12, sticky="ew")
+
+        modo, archivo = ctk.StringVar(value="luego"), {"ruta": ""}
+        origen = ctk.CTkComboBox(d, values=[e["name"] for e in empresas.listar_empresas() if e["tiene_plantilla"]] or [""],
+                                 state="readonly")
+        etiqueta_archivo = ctk.CTkLabel(d, text="", text_color="gray", wraplength=300, justify="left")
+
+        def elegir_archivo():
+            ruta = filedialog.askopenfilename(parent=d, filetypes=[("JSON", "*.json")])
+            if ruta:
+                archivo["ruta"] = ruta
+                etiqueta_archivo.configure(text=ruta)
+                modo.set("archivo")
+
+        if existente:
+            nombre.insert(0, existente["name"])
+            nombre.configure(state="disabled")
+            almacen.set(empresas.ALMACENAMIENTOS.get(existente["storage"], sin_definir))
+            correo.insert(0, existente["email_template"])
+        else:
+            ctk.CTkLabel(d, text="Plantilla de Excel", font=ctk.CTkFont(weight="bold")).grid(row=3, column=0, columnspan=2, padx=12, pady=(16, 4), sticky="w")
+            ctk.CTkRadioButton(d, text="Copiar de otra empresa", variable=modo, value="copiar").grid(row=4, column=0, padx=12, pady=4, sticky="w")
+            origen.grid(row=4, column=1, padx=12, sticky="ew")
+            ctk.CTkRadioButton(d, text="Importar archivo", variable=modo, value="archivo").grid(row=5, column=0, padx=12, pady=4, sticky="w")
+            ctk.CTkButton(d, text="Elegir archivo…", command=elegir_archivo).grid(row=5, column=1, padx=12, sticky="w")
+            etiqueta_archivo.grid(row=6, column=1, padx=12, sticky="w")
+            ctk.CTkRadioButton(d, text="Más tarde", variable=modo, value="luego").grid(row=7, column=0, padx=12, pady=4, sticky="w")
+
+        def guardar():
+            clave = next((k for k, v in empresas.ALMACENAMIENTOS.items() if v == almacen.get()), "")
+            try:
+                if existente:
+                    empresas.editar_empresa(existente["name"], clave, correo.get())
+                else:
+                    copiar = origen.get() if modo.get() == "copiar" else None
+                    importar = archivo["ruta"] if modo.get() == "archivo" else None
+                    if modo.get() == "copiar" and not copiar:
+                        raise empresas.EmpresaError("No hay otra empresa con plantilla para copiar.")
+                    if modo.get() == "archivo" and not importar:
+                        raise empresas.EmpresaError("Elige el archivo de plantilla.")
+                    empresas.crear_empresa(nombre.get(), clave, correo.get(), copiar, importar)
+            except empresas.EmpresaError as e:
+                return messagebox.showerror("No se pudo guardar", str(e), parent=d)
+            d.destroy()
+            self._refrescar_empresas()
+
+        ctk.CTkButton(d, text="Guardar", command=guardar).grid(row=8, column=1, padx=12, pady=20, sticky="e")
 
     # ---------- Ayuda ----------
     def _tab_ayuda(self, tab):

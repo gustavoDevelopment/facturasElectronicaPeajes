@@ -73,7 +73,20 @@ Esto se hace **una sola vez por tenant y por equipo**; las siguientes veces solo
 
 ## Uso de la interfaz gráfica
 
-### 1. Configurar el correo (una sola vez por tenant)
+### 1. Administrar empresas
+
+Pestaña **Empresas** (equivale al menú de tenants de la terminal): lista las empresas con su
+estado de correo y de plantilla, y permite **Agregar**, **Editar**, **Eliminar** y
+**Configurar correo**.
+
+- Al **agregar** una empresa se elige su plantilla de Excel: copiar la de otra empresa, importar un
+  `plantilla.json` o dejarla para más tarde (sin plantilla no se puede procesar).
+- El nombre identifica a la empresa (carpetas, credenciales y plantilla), por eso no se puede cambiar.
+- Al **eliminar** se quita de la lista y se borra su plantilla; los ZIP, vouchers y Excel ya generados
+  no se tocan, y las credenciales solo se borran si lo confirmas.
+- El selector de empresa de **Procesar** muestra estas empresas.
+
+### 2. Configurar el correo (una sola vez por tenant)
 
 Pestaña **Correo**:
 
@@ -84,7 +97,7 @@ Pestaña **Correo**:
 
 > Para OAuth2 se necesita un *OAuth Client ID* de tipo **Desktop app**, creado en Google Cloud Console con la **Gmail API** habilitada. Descarga su `client_secret.json` y guárdalo **fuera del repositorio**.
 
-### 2. Procesar un mes
+### 3. Procesar un mes
 
 Pestaña **Procesar**:
 
