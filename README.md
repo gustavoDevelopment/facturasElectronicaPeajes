@@ -87,6 +87,10 @@ instalar Python: `FacturaeOptimus-macos.zip` (`.app`) y `FacturaeOptimus-windows
 workflow) o al crear un tag `v*`, y deja los archivos como artefactos. Cada build corre
 las pruebas y una autoprueba del binario (`--check`).
 
+Para publicar una versión descargable (sección **Releases** del repositorio):
+`git tag v1.0.0 && git push origin v1.0.0`. El workflow construye ambos sistemas y
+adjunta `FacturaeOptimus-macos.zip` y `FacturaeOptimus-windows.zip` a esa release.
+
 Localmente: `pip install pyinstaller && pyinstaller facturae.spec`.
 
 Primer arranque sin firma digital:
