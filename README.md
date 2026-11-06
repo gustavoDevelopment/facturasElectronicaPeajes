@@ -48,25 +48,17 @@ source venv/bin/activate  # En Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-## Estructura del Proyecto
+## Arquitectura del núcleo
 
-### Dominio (domain/)
-- Entidades del negocio (`entities/`)
-- Casos de uso (`use_cases/`)
-- Interfaces de repositorios (`repositories/`)
+La lógica de `main/bussines/` no usa `input()` ni `print()`: recibe parámetros,
+devuelve resultados (`ResultadoDescarga`, `ResultadoProceso`) y reporta eventos a
+un `Reporter` (`bussines/reporter.py`). El menú de consola usa `ConsoleReporter` y
+hace las preguntas al usuario; otra interfaz (por ejemplo gráfica) solo debe
+heredar de `Reporter` y llamar a las mismas funciones.
 
-### Aplicación (application/)
-- Servicios de aplicación (`services/`)
-- Transfer Objects (`dtos/`)
-
-### Adaptadores de Interfaz (interface_adapters/)
-- Controladores (`controllers/`)
-- Presentadores (`presenters/`)
-
-### Infraestructura (infrastructure/)
-- Implementaciones concretas de repositorios
-- Implementaciones de correo
-- Implementaciones de impresión
+Los datos de trabajo (ZIPs, vouchers, Excel de salida) se guardan en
+`Facturae_Optimus/<tenant>/` dentro de `DATA_DIR` (por defecto, dos niveles sobre
+`main/`). Se puede cambiar con la variable de entorno `DATA_DIR`.
 
 ## Uso
 
@@ -78,7 +70,7 @@ cp .env.example .env
 
 2. Ejecutar la aplicación:
    ```bash
-python src/main.py
+python __main__.py
 ```
 
 ## Configuración del correo (secretos)

@@ -4,8 +4,10 @@ from datetime import datetime
 import os
 from plantilla.cabecera import Cabecera
 from plantilla.constants import Constants
+from bussines.reporter import Reporter
 
-def crear_archivo_excel_con_cabecera(base_dir,subFolder,tenant_id,cabeceras):
+def crear_archivo_excel_con_cabecera(base_dir,subFolder,tenant_id,cabeceras,reporter=None):
+    reporter = reporter or Reporter()
     nombre_archivo = f"documento_{subFolder}.xlsx"
     # Establecer la ruta del archivo Excel
     path_excel = os.path.join(base_dir,Constants.APLICATION_NAME.value[0],tenant_id, "output", nombre_archivo)  # Aquí creas el directorio "file"
@@ -18,7 +20,6 @@ def crear_archivo_excel_con_cabecera(base_dir,subFolder,tenant_id,cabeceras):
     ws.title = str(Constants.FACTURA.value[0])
 
     for columna in cabeceras:
-        print(str(columna.index),str(columna.column))
         ws.cell(row=1, column=columna.index, value=str(columna.column))
 
     ws2 = wb.create_sheet(title=str(Constants.NOTA_CREDITO.value[0]))
@@ -26,18 +27,17 @@ def crear_archivo_excel_con_cabecera(base_dir,subFolder,tenant_id,cabeceras):
         ws2.cell(row=1, column=columna.index, value=columna.column)
 
     wb.save(path_excel)
-    print(f"✅ Archivo creado: {path_excel}")
+    reporter.info(f"✅ Archivo creado: {path_excel}")
     return path_excel
 
 
-def agregar_filas_al_excel(path_excel: str, datos: list[dict]):
+def agregar_filas_al_excel(path_excel: str, datos: list[dict], reporter=None):
+    reporter = reporter or Reporter()
     if not os.path.exists(path_excel):
         raise FileNotFoundError("El archivo no existe. Primero crea el archivo con cabeceras.")
 
     wb = load_workbook(path_excel)
     
-    next_row = 2
-
     for item in datos:
         if item["InvoiceType"]== Constants.FACTURA.value[0]:
             ws = wb[str(Constants.FACTURA.value[0])]
@@ -45,9 +45,9 @@ def agregar_filas_al_excel(path_excel: str, datos: list[dict]):
         else:
             ws = wb[str(Constants.NOTA_CREDITO.value[0])]
             agregar_fila_excel(ws,item)
-        
-        wb.save(path_excel)
-    print(f"Se agregaron {len(datos)} filas al archivo.")
+
+    wb.save(path_excel)
+    reporter.info(f"Se agregaron {len(datos)} filas al archivo.")
 
 
 # Método para agregar una fila de datos al archivo Excel

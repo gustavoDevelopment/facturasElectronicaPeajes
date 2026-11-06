@@ -5,7 +5,9 @@ import os
 from datetime import datetime,timedelta
 import base64
 import calendar
-from plantilla.constants import Constants
+from dataclasses import dataclass
+from bussines.paths import tenant_work_dir
+from bussines.reporter import Reporter
 from objects.fo_gmail_oauth import obtener_credenciales, generar_auth_string
 
 def conectar_imap(emailConfig):
@@ -45,128 +47,109 @@ def ultimo_dia_del_mes(mes, annio):
     ultimo_dia = calendar.monthrange(annio, mes)[1]
     return datetime(annio, mes, ultimo_dia).strftime("%d-%b-%Y")
 
-def conectar_y_descargar(mes, annio, folderDownload, folderProcess, emailConfig):
+FILTRO_REMITENTE = 'FROM "notificaciones@int.lafactura.co"'
+
+
+@dataclass
+class ResultadoDescarga:
+    correos: int = 0
+    descargados: int = 0
+    total_zips: int = 0
+
+
+def contar_zips(carpeta):
+    """Cantidad de ZIPs ya descargados en la carpeta."""
+    if not os.path.exists(carpeta):
+        return 0
+    return len([f for f in os.listdir(carpeta) if f.endswith(".zip")])
+
+
+def conectar_y_descargar(mes, annio, folderDownload, folderProcess, emailConfig,
+                         reporter=None, verificar=True):
+    """
+    Descarga los ZIP adjuntos de las facturas del mes indicado.
+
+    verificar=False omite la descarga cuando ya hay ZIPs en folderDownload
+    (la decisión de preguntar al usuario es de quien llama).
+    """
+    reporter = reporter or Reporter()
     inicio_mes = primer_dia_del_mes(mes, annio)
     fin_mes = primer_dia_del_siguiente_mes(mes, annio)
 
-    # Verificar si la carpeta de descarga existe y tiene archivos ZIP
-    archivos_zip = []
-    if os.path.exists(folderDownload):
-        archivos_zip = [f for f in os.listdir(folderDownload) if f.endswith('.zip')]
-    
-    # Mostrar información de archivos existentes
-    print("\n📊 Estado actual de la carpeta de descarga:")
-    print(f"   - Archivos ZIP encontrados: {len(archivos_zip)}")
-    
-    # Conectar a Gmail para obtener el total de correos
+    existentes = contar_zips(folderDownload)
+    reporter.info(f"Archivos ZIP ya descargados: {existentes}")
+    if existentes and not verificar:
+        reporter.info("Se continúa con los archivos ya descargados.")
+        return ResultadoDescarga(total_zips=existentes)
+
     mail = conectar_imap(emailConfig)
-
-    # Buscar correos en el rango de fechas
-    estado, mensajes = mail.search(None, f'(SENTSINCE {inicio_mes} BEFORE {fin_mes} FROM "notificaciones@int.lafactura.co")')
-    if estado != "OK":
-        print("❌ Error al buscar correos.")
-        mail.logout()
-        return
-    
-    ids = mensajes[0].split()
-    total_correos = len(ids)
-    
-    # Mostrar resumen
-    print(f"🔍 Correos encontrados: {total_correos}")
-    print(f"� Archivos descargados: {len(archivos_zip)}")
-    
-    if archivos_zip:
-        respuesta = input("\n¿Desea verificar y descargar archivos faltantes? (s/n): ").strip().lower()
-        if respuesta != 's':
-            print("✅ Continuando con los archivos ya descargados.")
-            mail.logout()
-            return
-    
-    # Si no hay archivos o el usuario quiere continuar, limpiar la conexión
-    mail.logout()
-
-    # Reconectar para el procesamiento normal
-    mail = conectar_imap(emailConfig)
-
-    # Buscar correos del día con el asunto específico
-    print(f"🔍 Buscando facturas desde {inicio_mes} hasta {fin_mes}")
-    estado, mensajes = mail.search(None, f'(SENTSINCE {inicio_mes} BEFORE {fin_mes} FROM "notificaciones@int.lafactura.co")')
-    if estado != "OK":
-        print("❌ Error al buscar correos.")
-        mail.logout()
-        return
-
-    ids = mensajes[0].split()
-    total_correos = len(ids)
-    print(f"✅ Correos encontrados: {total_correos}")
-    
-    # Si ya hay archivos descargados, verificar si coinciden con los correos
-    if archivos_zip and len(archivos_zip) >= total_correos:
-        print(f"ℹ️  Ya se han descargado {len(archivos_zip)} archivos de {total_correos} correos.")
-        respuesta = input("¿Desea verificar la descarga de todos modos? (s/n): ").strip().lower()
-        if respuesta != 's':
-            mail.logout()
-            return
-
-    # Asegurarse de que la carpeta de descarga existe
-    os.makedirs(folderDownload, exist_ok=True)
-    
-    # Contador de archivos nuevos descargados
-    descargados = 0
-    
-    for num in ids:
-        estado, datos = mail.fetch(num, "(RFC822)")
+    try:
+        reporter.info(f"🔍 Buscando facturas desde {inicio_mes} hasta {fin_mes}")
+        estado, mensajes = mail.search(None, f'(SENTSINCE {inicio_mes} BEFORE {fin_mes} {FILTRO_REMITENTE})')
         if estado != "OK":
-            continue
+            reporter.error("Error al buscar correos.")
+            return ResultadoDescarga(total_zips=existentes)
 
-        mensaje = email.message_from_bytes(datos[0][1])
-        asunto, codificacion = decode_header(mensaje["Subject"])[0]
-        if isinstance(asunto, bytes):
-            asunto = asunto.decode(codificacion or "utf-8")
+        ids = mensajes[0].split()
+        total_correos = len(ids)
+        reporter.info(f"✅ Correos encontrados: {total_correos}")
 
-        print(f"📨 Procesando correo: {asunto}")
+        os.makedirs(folderDownload, exist_ok=True)
+        descargados = 0
 
-        for parte in mensaje.walk():
-            if parte.get_content_maintype() == "multipart":
+        for n, num in enumerate(ids, start=1):
+            estado, datos = mail.fetch(num, "(RFC822)")
+            if estado != "OK":
                 continue
-            if parte.get("Content-Disposition") is None:
-                continue
 
-            nombre_archivo = parte.get_filename()
-            if nombre_archivo and nombre_archivo.endswith(".zip"):
-                nombre_archivo = limpiar_texto(nombre_archivo)
-                ruta_completa = os.path.join(folderDownload, nombre_archivo)
-                ruta_process = os.path.join(folderProcess, nombre_archivo)
+            mensaje = email.message_from_bytes(datos[0][1])
+            asunto, codificacion = decode_header(mensaje["Subject"])[0]
+            if isinstance(asunto, bytes):
+                asunto = asunto.decode(codificacion or "utf-8")
+            reporter.progress(n, total_correos, f"Procesando correo: {asunto}")
 
-                if os.path.exists(ruta_completa) or os.path.exists(ruta_process):
-                    print(f"   ✅ Archivo ya existe: {nombre_archivo}")
+            for parte in mensaje.walk():
+                if parte.get_content_maintype() == "multipart":
+                    continue
+                if parte.get("Content-Disposition") is None:
                     continue
 
-                # Descargar archivo
-                try:
-                    with open(ruta_completa, "wb") as f:
-                        f.write(parte.get_payload(decode=True))
-                    print(f"   💾 Descargado: {nombre_archivo}")
-                    descargados += 1
-                except Exception as e:
-                    print(f"   ❌ Error al descargar {nombre_archivo}: {str(e)}")
-    
-    mail.logout()
-    
-    # Resumen final
-    total_archivos = len([f for f in os.listdir(folderDownload) if f.endswith('.zip')])
-    print(f"\n📊 Resumen de descarga:")
-    print(f"   - Correos procesados: {total_correos}")
-    print(f"   - Archivos descargados en esta ejecución: {descargados}")
-    print(f"   - Total de archivos en la carpeta: {total_archivos}")
+                nombre_archivo = parte.get_filename()
+                if nombre_archivo and nombre_archivo.endswith(".zip"):
+                    nombre_archivo = limpiar_texto(nombre_archivo)
+                    ruta_completa = os.path.join(folderDownload, nombre_archivo)
+                    ruta_process = os.path.join(folderProcess, nombre_archivo)
 
-def do_on_start(subFolder,month,year,emailConfig,tenant_id):
-    print("Conect Email with user: ",emailConfig.get("user"),"auth:",emailConfig.get("auth_type","password"))
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    base_dir = os.path.dirname(os.path.dirname(base_dir))
-    print("Folder Base: ",base_dir)
-    downloadZIPS = os.path.join(base_dir,Constants.APLICATION_NAME.value[0],tenant_id, "zip",subFolder)
-    processZIPS = os.path.join(base_dir,Constants.APLICATION_NAME.value[0],tenant_id, "closedZip",subFolder)   
-    print("Folder download email: ",downloadZIPS) 
+                    if os.path.exists(ruta_completa) or os.path.exists(ruta_process):
+                        reporter.info(f"   ✅ Archivo ya existe: {nombre_archivo}")
+                        continue
+
+                    try:
+                        with open(ruta_completa, "wb") as f:
+                            f.write(parte.get_payload(decode=True))
+                        reporter.info(f"   💾 Descargado: {nombre_archivo}")
+                        descargados += 1
+                    except Exception as e:
+                        reporter.error(f"No se pudo descargar {nombre_archivo}: {e}")
+    finally:
+        mail.logout()
+
+    resultado = ResultadoDescarga(total_correos, descargados, contar_zips(folderDownload))
+    reporter.info(
+        f"📊 Correos: {resultado.correos} | descargados ahora: {resultado.descargados}"
+        f" | total ZIPs: {resultado.total_zips}"
+    )
+    return resultado
+
+
+def do_on_start(subFolder, month, year, emailConfig, tenant_id,
+                reporter=None, verificar=True, base_dir=None):
+    reporter = reporter or Reporter()
+    trabajo = tenant_work_dir(tenant_id, base_dir)
+    downloadZIPS = str(trabajo / "zip" / subFolder)
+    processZIPS = str(trabajo / "closedZip" / subFolder)
+    reporter.info(f"Conectando con {emailConfig.get('user')} ({emailConfig.get('auth_type', 'password')})")
+    reporter.info(f"Carpeta de descarga: {downloadZIPS}")
     os.makedirs(downloadZIPS, exist_ok=True)
-    conectar_y_descargar(month,year,downloadZIPS,processZIPS,emailConfig)
+    return conectar_y_descargar(month, year, downloadZIPS, processZIPS, emailConfig,
+                                reporter, verificar)
