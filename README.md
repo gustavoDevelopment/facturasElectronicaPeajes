@@ -88,10 +88,10 @@ Pestaña **Correo**:
 
 Pestaña **Procesar**:
 
-1. Elige el **tenant**, el **mes** y el **año** (por defecto, el mes anterior).
+1. Elige el **tenant** y el rango **Desde / Hasta** (mes y año; por defecto, el mes anterior). Para varios meses, pon un rango (por ejemplo ene–mar 2026): cada mes se procesa por separado y se pueden correr **a la vez** (*Procesos simultáneos*, de 1 a 4; máximo 24 meses por ejecución).
 2. Elige la **carpeta de salida** con *Elegir…* (una sola para todos los tenants).
-3. Pulsa **Descargar y procesar**. Verás la barra de progreso y el registro en vivo.
-4. Al terminar, usa **Abrir Excel** o **Abrir carpeta de salida**.
+3. Pulsa **Descargar y procesar**. Verás la barra de progreso, el **panel de resumen** (una fila por mes con estado, correos, ZIP, facturas y botón para abrir su Excel) y el registro de descarga en vivo.
+4. Un mes que falle no detiene a los demás. Al terminar usa **Abrir** en cada fila, **Abrir último Excel** o **Abrir carpeta de salida**.
 
 Si ya hay ZIP descargados del mes, la casilla *Verificar y descargar faltantes* decide si se vuelve a consultar el correo.
 

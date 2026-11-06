@@ -47,10 +47,13 @@ Vincular"; se abre el navegador, inicia sesión y acepta los permisos.
   Al ver "Guardado en …" el correo queda listo; el tenant aparece en "Procesar".
 
 4) PROCESAR UN MES (pestaña "Procesar")
-  • Elige tenant, mes y año (por defecto, el mes anterior).
+  • Elige el tenant y el rango "Desde / Hasta" (por defecto, el mes anterior). Para \
+varios meses pon un rango; se procesan a la vez ("Procesos simultáneos", de 1 a 4).
   • Elige la carpeta de salida con "Elegir…" (una sola para todos los tenants; cada \
 tenant usa una subcarpeta con su nombre).
-  • Pulsa "Descargar y procesar" y al terminar usa "Abrir Excel" o "Abrir carpeta de salida".
+  • Pulsa "Descargar y procesar". El panel Resumen muestra, por mes, el estado, los \
+correos, los ZIP y las facturas, con un botón para abrir su Excel. Un mes con error no \
+detiene a los demás.
 
 Esto se configura una sola vez por tenant y por equipo.
 

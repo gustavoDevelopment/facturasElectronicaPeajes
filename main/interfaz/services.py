@@ -6,13 +6,39 @@ import json
 import os
 import subprocess
 import sys
+import threading
+from dataclasses import dataclass
 from datetime import date
+from typing import Optional
 
 from bussines.tcEmail import do_on_start
 from bussines.tcExtracFacturacion import do_on_start_extract_facturacion
 from config import TENANTS_DIR, SECRETS_DIR, tenant_email_path, tenant_secrets_dir
 from objects.fo_gmail_oauth import obtener_credenciales
 from objects.fo_obj_email import ConfiguracionEmail
+
+
+MAX_SIMULTANEOS = 4
+
+
+@dataclass
+class ResumenProceso:
+    """Datos de un mes procesado, para mostrar en el panel de resumen."""
+    correos: int = 0
+    descargados: int = 0
+    zips: int = 0
+    facturas: int = 0
+    excel: str = ""
+
+
+@dataclass
+class ResultadoMes:
+    mes: int
+    anio: int
+    ok: bool
+    resultado: Optional[object] = None
+    error: str = ""
+    tenant: str = ""
 
 
 class ConfiguracionIncompleta(Exception):
@@ -48,11 +74,62 @@ def cargar_email(tenant_id: str) -> dict:
 
 
 def ejecutar_proceso(tenant_id: str, mes: int, anio: int, reporter, reverificar: bool = True):
-    """Descarga los ZIP del mes y genera el Excel. Devuelve ResultadoProceso."""
+    """Descarga los ZIP del mes y genera el Excel. Devuelve un ResumenProceso."""
     email = cargar_email(tenant_id)
     sub = f"{mes}_{anio}"
-    do_on_start(sub, mes, anio, email, tenant_id, reporter, reverificar)
-    return do_on_start_extract_facturacion(sub, tenant_id, reporter)
+    descarga = do_on_start(sub, mes, anio, email, tenant_id, reporter, reverificar)
+    proceso = do_on_start_extract_facturacion(sub, tenant_id, reporter)
+    return ResumenProceso(descarga.correos, descarga.descargados, proceso.zips, proceso.facturas, proceso.excel)
+
+
+class ProcesoDuplicado(Exception):
+    """Ya hay un proceso en curso para ese tenant y mes."""
+
+
+class DemasiadosProcesos(Exception):
+    """Se alcanzó el máximo de procesos en curso a la vez."""
+
+
+class Lanzador:
+    """
+    Lanza procesos independientes (uno por tenant y mes) en hilos propios. Se puede
+    lanzar otro mientras los anteriores siguen corriendo; cada uno usa sus carpetas
+    y su Excel. Un proceso que falla no afecta a los demás.
+    """
+
+    def __init__(self, max_simultaneos: int = MAX_SIMULTANEOS):
+        self.max_simultaneos = max_simultaneos
+        self._lock = threading.Lock()
+        self._activos = set()
+
+    @property
+    def en_curso(self) -> int:
+        with self._lock:
+            return len(self._activos)
+
+    def lanzar(self, tenant_id, mes, anio, reporter, al_terminar, reverificar=True):
+        clave = (tenant_id, mes, anio)
+        with self._lock:
+            if clave in self._activos:
+                raise ProcesoDuplicado(f"Ya hay un proceso en curso para {tenant_id} {mes:02d}/{anio}.")
+            if len(self._activos) >= self.max_simultaneos:
+                raise DemasiadosProcesos(
+                    f"Ya hay {self.max_simultaneos} procesos en curso; espera a que termine alguno.")
+            self._activos.add(clave)
+
+        def trabajo():
+            try:
+                resultado = ResultadoMes(mes, anio, True, ejecutar_proceso(tenant_id, mes, anio, reporter, reverificar),
+                                         tenant=tenant_id)
+            except Exception as e:  # el error se muestra en el panel, no se pierde
+                resultado = ResultadoMes(mes, anio, False, error=str(e), tenant=tenant_id)
+            with self._lock:
+                self._activos.discard(clave)  # antes del aviso, para poder relanzar de inmediato
+            al_terminar(resultado)
+
+        hilo = threading.Thread(target=trabajo, daemon=True)
+        hilo.start()
+        return hilo
 
 
 def _guardar(tenant_id: str, actualizar) -> str:

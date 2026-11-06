@@ -4,11 +4,16 @@ from email.header import decode_header
 import os
 from datetime import datetime,timedelta
 import base64
+import threading
 import calendar
 from dataclasses import dataclass
 from bussines.paths import tenant_work_dir
 from bussines.reporter import Reporter
 from objects.fo_gmail_oauth import obtener_credenciales, generar_auth_string
+
+# Varios meses pueden procesarse a la vez: el token OAuth se lee/renueva de a uno
+_LOCK_CREDENCIALES = threading.Lock()
+
 
 def conectar_imap(emailConfig):
     """
@@ -19,10 +24,11 @@ def conectar_imap(emailConfig):
     mail = imaplib.IMAP4_SSL(emailConfig["imap_server"])
 
     if emailConfig.get("auth_type") == "oauth2":
-        creds = obtener_credenciales(
-            emailConfig["oauth_client_secrets"],
-            emailConfig["oauth_token"],
-        )
+        with _LOCK_CREDENCIALES:
+            creds = obtener_credenciales(
+                emailConfig["oauth_client_secrets"],
+                emailConfig["oauth_token"],
+            )
         auth_string = generar_auth_string(emailConfig["user"], creds.token)
         mail.authenticate("XOAUTH2", lambda _: auth_string.encode())
     else:
