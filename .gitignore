@@ -1,4 +1,4 @@
-﻿/zip/
+/zip/
 /closedZip/
 /openZip/
 /voucher/
@@ -16,3 +16,8 @@ client_secret*.json
 gmail_token.json
 main/build/tenant/*/gmail_token.json
 main/build/tenant/*/email.json
+
+# Artefactos de build y salidas generadas
+*.egg-info/
+main/Facturae_Optimus/
+.xdp-*
