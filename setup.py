@@ -10,6 +10,7 @@ setup(
         "openpyxl>=3.0.0",
         "google-auth>=2.25.0",
         "google-auth-oauthlib>=1.2.0",
+        "customtkinter>=5.2.0",
     ],
     python_requires=">=3.9",
 )

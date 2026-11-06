@@ -66,6 +66,19 @@ Tenants, plantillas, logs y `settings.json` viven en la carpeta de datos del usu
 en Windows), configurable con `FACTURAE_HOME`. La plantilla incluida en el repositorio
 se copia ahí la primera vez que se usa un tenant.
 
+## Interfaz gráfica
+
+```bash
+python gui_main.py
+```
+
+- **Procesar:** elige tenant, mes y año (por defecto el mes anterior) y la carpeta de
+  salida; muestra el progreso y el registro, y permite abrir el Excel o la carpeta.
+- **Correo:** configura el correo del tenant sin editar archivos: Google (OAuth2, con
+  selector del `client_secret.json` y navegador para autorizar) o contraseña de aplicación.
+
+Requiere `customtkinter` (incluido en `requirements.txt`).
+
 ## Uso
 
 1. Configurar las variables de entorno:
